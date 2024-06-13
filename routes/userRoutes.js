@@ -44,11 +44,17 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       fullName,
     });
-
-    res.status(201).json(newUser);
+    if (!newUser) { // Handle potential errors during user creation
+      return res.status(500).json({ message: "Failed to create user" });
+    }
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      process.env.JWT_SECRET
+    );
+    res.status(201).json({newUser: { id: newUser.id, fullName: newUser.fullName }, token});
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to create user" });
+    res.status(500).json({ message: "Sign Up Failed" });
   }
 });
 
@@ -74,10 +80,33 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Login failed" });
   }
 });
-
-router.post("/reset-password", async (req, res) => {
-  const { email, oldPassword, newPassword } = req.body;
-
+const authenticateUser = (req, res, next) => {
+  // Extract token from the Authorization header
+  const authHeader  = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Missing or malformed token' });
+  }
+  // Extract the token part from the header
+  const token = authHeader.split(' ')[1];
+  console.log("Received token:", token);
+  if (!token) {
+    return res.status(401).json({ message: 'Missing token' });
+  }
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user=decoded
+    console.log("Decoded token:", decoded);
+    // Pass the decoded payload to the next middleware/route handler
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
+router.post("/reset-password",authenticateUser, async (req, res) => {
+  const {oldPassword, newPassword } = req.body;
+  const {email} = req.user
   try {
     const user = await User.findOne({ where: { email } });
 
@@ -102,8 +131,9 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-router.post("/enroll", async (req, res) => {
-  const { userId, cartItems, couponCode } = req.body;
+router.post("/enroll",authenticateUser, async (req, res) => {
+  const {cartItems, couponCode } = req.body;
+  const {userId} = req.user
   try {
     const user = await User.findByPk(userId);
     if (!user) {

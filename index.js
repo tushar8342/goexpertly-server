@@ -20,7 +20,7 @@ app.use(cors());
 app.use(cors({
   "origin": "*",
   // origin: 'https://expertly.onrender.com/',
-  methods: ['GET', 'POST'], // Specify allowed HTTP methods
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Specify allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
 }));
 
