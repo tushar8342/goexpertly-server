@@ -27,7 +27,7 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
-  const { email, password, fullName } = req.body;
+  const { email, password, fullName,phone } = req.body;
 
   try {
     const existingUser = await User.findOne({
@@ -43,6 +43,7 @@ router.post("/signup", async (req, res) => {
       email,
       password: hashedPassword,
       fullName,
+      phone
     });
     if (!newUser) { // Handle potential errors during user creation
       return res.status(500).json({ message: "Failed to create user" });
