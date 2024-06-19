@@ -580,4 +580,43 @@ router.post('/coupons/apply', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+router.post('/contactus', async (req, res) => {
+  try {
+    // Validate required fields
+    const { firstName, lastName, email, message } = req.body;
+    if (!firstName || !lastName || !email || !message) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    // Create the email content
+    const msg = {
+      to: 'syed.p@goexpertly.com', 
+      from: "support@goexpertly.com", // Use the sender's email for a personalized touch
+      subject: `Contact Us Inquiry from ${firstName} ${lastName}`,
+      text: `
+        **Name:** ${firstName} ${lastName}
+        **Email:** ${email}
+        **Current Role:** ${req.body.currentRole || 'N/A'} 
+        **Company Name:** ${req.body.companyName || 'N/A'} 
+        **Company Address:** ${req.body.companyAddress || 'N/A'}
+        **City:** ${req.body.city || 'N/A'}  
+        **Country:** ${req.body.country || 'N/A'}  
+        **Message:** ${message}
+      `,
+    };
+
+    // Send the email with error handling
+    await sendGridMail.send(msg)
+      .then(() => {
+        console.log('Email sent successfully!');
+        res.status(200).json({ message: 'Your message has been sent successfully!' });
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error. Please try again later.' });
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 module.exports = router;
