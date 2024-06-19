@@ -196,6 +196,7 @@ router.post("/enroll",authenticateUser, async (req, res) => {
       mode: "payment",
       success_url: `${process.env.FRONTEND_URL}/payment-success/{CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      billing_address_collection: 'required',
     });
     res.status(200).json({ sessionId: session.id });
   } catch (error) {
