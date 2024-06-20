@@ -105,6 +105,49 @@ const authenticateUser = (req, res, next) => {
     res.status(401).json({ message: 'Invalid token' });
   }
 };
+// Route to get user details and enrolled courses
+router.get('/:userId', authenticateUser, async (req, res) => {
+  try {
+    const paramUserId = parseInt(req.params.userId, 10);
+    const { userId } = req.user;
+   // Validate matching userIds
+   if (paramUserId !== userId) {
+    return res.status(403).json({ message: 'Unauthorized access' });
+  }
+    // Find user and enrollments in a single database query
+    const [user, enrollments] = await Promise.all([
+      User.findByPk(userId),
+      Enrollment.findAll({ where: { userId } })
+    ]);
+
+    // Check if user exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Handle empty enrollments gracefully
+    if (!enrollments) {
+      enrollments = [];
+    }
+
+    // Fetch course details efficiently
+    const detailedCourses = await Promise.all(
+      enrollments.map(async (enrollment) => {
+        const course = await Course.findByPk(enrollment.courseId);
+        // const video = await Video.findOne({ where: { courseId: course.id } });
+        // const videoLink = video?.videoLink
+        const videoLink = 'https://goexpertly-bucket.s3.amazonaws.com/WEBINARS/Best+of+Dolby+Vision+12K+HDR+120fps.mp4';
+        return { ...enrollment.dataValues, ...course.dataValues, videoLink }; // Combine enrollment and course data
+      })
+    );
+
+    // Return user details and enrolled courses (including detailed courses)
+    res.json({ user, enrolledCourses: detailedCourses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 router.post("/reset-password",authenticateUser, async (req, res) => {
   const {oldPassword, newPassword } = req.body;
   const {email} = req.user
