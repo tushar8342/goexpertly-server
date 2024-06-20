@@ -89,7 +89,6 @@ const authenticateUser = (req, res, next) => {
   }
   // Extract the token part from the header
   const token = authHeader.split(' ')[1];
-  console.log("Received token:", token);
   if (!token) {
     return res.status(401).json({ message: 'Missing token' });
   }
@@ -97,7 +96,6 @@ const authenticateUser = (req, res, next) => {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user=decoded
-    console.log("Decoded token:", decoded);
     // Pass the decoded payload to the next middleware/route handler
     next();
   } catch (error) {
@@ -252,13 +250,12 @@ router.get("/enrollment/success", async (req, res) => {
   const sessionId = req.query.session_id;
   try {
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log(checkoutSession);
     if (checkoutSession.payment_status === "paid") {
       const userId = checkoutSession.metadata.userId;
       const couponCode=checkoutSession.metadata.couponCode;
       const courseIdsString = checkoutSession.metadata.courseInfoString;
       const courseIds = courseIdsString.split(",");
-
+      const addressData = checkoutSession.customer_details.address
         // Loop through course IDs and create enrollments
       const enrollments = [];
       const rowData = [];
@@ -275,10 +272,8 @@ router.get("/enrollment/success", async (req, res) => {
         description:course.description
         });
       }
-      console.log(enrollments);
       const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const orderNumber=`${enrollments[0].id}${now}`
-      console.log(orderNumber);
       const user = await User.findByPk(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -313,17 +308,14 @@ router.get("/enrollment/success", async (req, res) => {
           totalOriginalPrice += unitPriceNumber;
           totalDiscount += discountedPrice;
         }
-        console.log(rowData);
       } else {
         // No coupon applied, use original prices
         for (const item of rowData) {  
           const unitPriceNumber = parseFloat(item.unitPrice);
           totalOriginalPrice += unitPriceNumber;
-          console.log(rowData);
         }
       }
 const total = totalOriginalPrice.toFixed(2)-totalDiscount.toFixed(2);
-console.log(total.toFixed(2));
       // Generate PDF
       const doc = new PDFDocument();
       const pdfStream = new stream.PassThrough();
@@ -391,8 +383,18 @@ console.log(total.toFixed(2));
     .text(user.fullName, { align: "left" })
     // .text("9806995591")
     .text(user.email)
+    doc
+    .font("Helvetica-Bold")
+    .text("Bill To", 300, 250, { underline: true })
+    .moveDown(0.5)
+    .font("Helvetica")
+    .text(addressData.line1)
+    .moveDown(0.2) 
+    if (addressData.line2) {
+      doc.text(addressData.line2).moveDown(0.2); // Add line2 with spacing
+    }
+    doc.text(`${addressData.city}, ${addressData.state} ${addressData.postal_code}`)
     .moveDown(3);
-
     // Course Information
    // Table Header
 const tableHeaderX = 50; // X position for the table header
@@ -490,10 +492,6 @@ doc
     "AAA is owned and operated by Expertly LLC. (Kindly note: the charge on your card will be from Expertly)",
     50
   )
-  .text(
-    "Kindly note - For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of  the completion of the training.",
-    50
-  );
 
 doc.end();
       // Wait for the upload to finish
@@ -521,6 +519,8 @@ doc.end();
 
         Thank you for your purchase!
 
+        **Kindly note - For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.**
+        
         Best regards,
         Your Course Team`,
         html: `<strong>Hello,</strong><br><br>You have successfully enrolled in the following courses:<br><br>
@@ -528,6 +528,7 @@ doc.end();
         ${rowData.map((row) => `* <strong>${row.webinarName}</strong><br>  Course Description: ${row.description}<br>`).join('<br>')}
 
         Thank you for your purchase!<br><br>
+        **Kindly note - For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.**<br><br>
         Best regards,<br>
         Your Course Team`,
         attachments: [
