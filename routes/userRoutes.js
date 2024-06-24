@@ -75,7 +75,7 @@ router.post("/login", async (req, res) => {
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET
     );
-    res.status(200).json({ token, userId: user.id });
+    res.status(200).json({ token, userId: user.id,userName:user.fullName });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Login failed" });
