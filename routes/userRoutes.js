@@ -612,12 +612,14 @@ router.post('/coupons/apply', async (req, res) => {
       // Update the item object with the discounted price for frontend display (optional)
       item.discountedPrice = discountedPrice;
     }
+    const finalPrice = (totalOriginalPrice-totalDiscountedPrice).toFixed(2);
     res.status(200).json({
       message: 'Coupon applied successfully!',
       discountType: coupon.discountType,
       discountValue: coupon.discountValue,
       originalTotal: totalOriginalPrice,
       discountedTotal: totalDiscountedPrice,
+      finalPrice: finalPrice,
       cartItems, // Include cart items with optional discountedPrice field
     });
   } catch (error) {
