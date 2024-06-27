@@ -590,7 +590,7 @@ router.post('/coupons/apply', async (req, res) => {
     let totalDiscountedPrice = 0;
 
     for (const item of cartItems) {
-      const { courseID, quantity } = item;
+      const { courseID, quantity=1 } = item;
       // Fetch product details (assuming you have a Product model)
       const course = await Course.findByPk(courseID);
 
