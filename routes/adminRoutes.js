@@ -287,7 +287,7 @@ router.get('/courses/:courseId', async (req, res) => {
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
-    const siteIdArray = await course.siteId.split(',');
+    const siteIdArray = await course.siteId;
     course.siteId=siteIdArray
     res.status(200).json(course);
   } catch (error) {

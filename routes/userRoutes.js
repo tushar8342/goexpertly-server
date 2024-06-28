@@ -252,6 +252,7 @@ router.get("/enrollment/success", async (req, res) => {
   const sessionId = req.query.session_id;
   try {
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log(checkoutSession);
     if (checkoutSession.payment_status === "paid") {
       const userId = checkoutSession.metadata.userId;
       const couponCode=checkoutSession.metadata.couponCode;
@@ -262,10 +263,11 @@ router.get("/enrollment/success", async (req, res) => {
       const enrollments = [];
       const rowData = [];
       for (const courseId of courseIds) {
-      const enrollment = await Enrollment.create({ userId, courseId }, { returning: true });
+      const enrollment = await Enrollment.create({ userId, courseId,siteId:1 }, { returning: true });
       enrollments.push(enrollment); // Add enrollment object to the array
       // Populate rowData dynamically
       const course = await Course.findByPk(enrollment.courseId);
+      console.log(course);
       rowData.push({
         webinarName: course.title,
         format: "Recorded", // Modify if format varies
