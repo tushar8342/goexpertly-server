@@ -7,6 +7,13 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const Enrollment=require('../models/Enrollment')
 const Coupon  = require('../models/Coupon')
+const Site  = require('../models/Site')
+const Contact = require('../models/Contact')
+const Video = require('../models/Video')
+
+const { Sequelize, DataTypes } = require('sequelize');
+require('dotenv').config();
+const sequelize = new Sequelize(process.env.DATABASE_URL);
 const router = express.Router();
 const { Op } = require('sequelize');
 const AWS = require('aws-sdk');
@@ -49,14 +56,12 @@ const authenticateAdmin = (req, res, next) => {
     }
     // Extract the token part from the header
     const token = authHeader.split(' ')[1];
-    console.log("Received token:", token);
     if (!token) {
       return res.status(401).json({ message: 'Missing token' });
     }
     try {
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded token:", decoded);
       // Pass the decoded payload to the next middleware/route handler
       req.admin = decoded;
       next();
@@ -65,6 +70,47 @@ const authenticateAdmin = (req, res, next) => {
       res.status(401).json({ message: 'Invalid token' });
     }
   };
+  router.get('/inquires', authenticateAdmin, async (req, res) => {
+    try {
+      // Fetch all users from the database
+      const contacts = await Contact.findAll();
+  
+      // Send the list of users in the response
+      res.status(200).json(contacts);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+  // Route to delete a contact by ID
+router.delete('/inquires/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate the ID parameter
+    if (!id || isNaN(id)) { // Check for valid numeric ID
+      return res.status(400).json({ message: 'Invalid contact ID' });
+    }
+
+    // Find and delete the contact with the given ID
+    const deletedContact = await Contact.destroy({
+      where: {
+        id,
+      },
+    });
+
+    // Check if the contact was found and deleted
+    if (!deletedContact) {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+
+    res.status(200).json({ message: 'Contact deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to delete contact' });
+  }
+});
+
 // Get all users (Admin endpoint)
 router.get('/users', authenticateAdmin, async (req, res) => {
     try {
@@ -98,12 +144,12 @@ router.get('/users', authenticateAdmin, async (req, res) => {
     }
 });
 // Update user information
-router.put('/users/:userId', async (req, res) => {
+router.put('/users/:userId',authenticateAdmin, async (req, res) => {
   const { userId } = req.params;
-  const { email, fullName } = req.body;
+  const { email, fullName,phone } = req.body;
   try {
     const [updateRow,updatedRowsCount] = await User.update(
-      { email, fullName },
+      { email, fullName,phone },
       { where: { id: userId }, returning: true }
     );
     console.log(updatedRowsCount);
@@ -142,31 +188,33 @@ router.delete('/users/:userId', async (req, res) => {
 
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
-  console.log(req);
   try {
-    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content } = req.body;
+    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content,webinarDate,siteId } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
       return res.status(400).json({ message: 'Missing required fields: title, description, and price' });
     }
-
+    const transaction = await sequelize.transaction();
     const newCourse = await Course.create({
       title,
       imageSrc,
-      instructors: instructors ? JSON.stringify(instructors) : null, // Handle optional array field
+      instructors: instructors? instructors  : null, // Handle optional array field
       duration,
       price,
       discountedPrice,
       rating,
       numReviews,
       detailsLink,
-      features: features ? JSON.stringify(features) : null, // Handle optional array field
+      features: features ? features : null, // Handle optional array field
       description,
       what_you_will_learn,
-      content
-    });
-
+      content,
+      webinarDate,
+      siteId: siteId.length>0 ? siteId.join(',') : siteId,
+    }, { transaction });
+    await newCourse.addSite(siteId, { transaction });
+    await transaction.commit(); 
     res.status(201).json(newCourse);
   } catch (error) {
     console.error(error);
@@ -177,8 +225,22 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
 // Get all courses
 router.get('/courses', async (req, res) => {
   try {
-    const courses = await Course.findAll();
-    res.status(200).json(courses);
+    const courses = await Course.findAll({
+      include: {
+        model: Site,
+        as:'Sites',
+        attributes: ['siteId', 'name'], // Include only necessary site attributes
+      },
+    });
+    const coursesWithSiteId = courses.map((course) => {
+      if (typeof course.siteId === 'string') {
+        course.siteId = course.siteId.split(','); // Split if comma-separated
+      } else {
+        course.siteId = [course.siteId]; // Wrap single value in array (optional)
+      }
+      return course;
+    });
+    res.status(200).json(coursesWithSiteId);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to fetch courses' });
@@ -188,7 +250,6 @@ router.get('/courses', async (req, res) => {
 router.get('/courses/search', async (req, res) => {
   try {
     const { keyword } = req.query;
-console.log(keyword);
     if (!keyword) {
       return res.status(400).json({ message: 'Keyword is required for searching' });
     }
@@ -200,7 +261,10 @@ console.log(keyword);
           { title: { [Op.like]: `%${keyword}%` } },
           { description: { [Op.like]: `%${keyword}%` } }
         ]
-      }
+      },include: [{
+        model: Site,
+        as: 'Sites' // Same alias as in the model definition
+      }]
     });
 
     res.status(200).json(courses);
@@ -213,10 +277,18 @@ console.log(keyword);
 router.get('/courses/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId,{
+      include: {
+        model: Site,
+        as:'Sites',
+        attributes: ['siteId', 'name'], // Include only necessary site attributes
+      },
+    });
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
+    const siteIdArray = await course.siteId.split(',');
+    course.siteId=siteIdArray
     res.status(200).json(course);
   } catch (error) {
     console.error(error);
@@ -226,32 +298,55 @@ router.get('/courses/:courseId', async (req, res) => {
 
 // Update course information
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  const courseId = req.params.courseId;
+  const { title, imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features, what_you_will_learn, content,webinarDate, siteId } = req.body;
+
+  // Basic validation (consider using a validation library for more complex checks)
+  if (!courseId) {
+    return res.status(400).json({ message: 'Missing courseId' });
+  }
+
   try {
-    const courseId = req.params.courseId;
-    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content  } = req.body;
-    const [updatedRowCount, updatedCourses] = await Course.update(
-      {  title,
+    const transaction = await sequelize.transaction();
+
+    // Find the course by ID
+    const courseToUpdate = await Course.findByPk(courseId, { transaction });
+
+    if (!courseToUpdate) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    const siteIdString=siteId.join(",")
+    // Update course details (optional)
+    if (title || imageSrc || description || instructors || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId) {
+      courseToUpdate.update({
+        title,
         imageSrc,
-        instructors: instructors ? JSON.stringify(instructors) : null, // Handle optional array field
+        instructors: instructors ? instructors : null,
         duration,
         price,
         discountedPrice,
         rating,
         numReviews,
         detailsLink,
-        features: features ? JSON.stringify(features) : null, // Handle optional array field
+        features: features ? features : null,
         description,
         what_you_will_learn,
-        content },
-      { where: { CourseID: courseId }, returning: true }
-    );
-    if (updatedRowCount === 0) {
-      return res.status(404).json({ message: 'Course not found' });
+        content,
+        webinarDate,
+        siteId:siteIdString
+      }, { transaction });
     }
-    res.status(200).json(updatedCourses[0]);
+
+    // Update site association
+    await courseToUpdate.setSites(siteId, { transaction });
+    const updatedCourse = await Course.findByPk(courseId, { transaction });
+    await transaction.commit();
+    res.json(updatedCourse);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Failed to update course' });
+    await transaction.rollback(); // Rollback if any error occurs
+    res.status(500).json({ message: 'Internal server error occurred' });
   }
 });
 
@@ -274,7 +369,7 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
     // Include user and course data in the response (optional)
     const enrollments = await Enrollment.findAll({
       include: [
-        { model: User, as: 'User', attributes: ['id', 'fullName'] },
+        { model: User, as: 'User', attributes: ['id', 'fullName','phone','siteId','email'] },
         { model: Course, as: 'Course', attributes: ['courseID', 'title'] },
       ],
       attributes: ['id', 'userId', 'courseId', 'invoiceUrl'],
@@ -291,13 +386,13 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
     region: process.env.AWS_REGION, 
   });
   router.get('/presigned-url', async (req, res) => {
+    const contentType = req.query.contentType || 'image/jpeg';
     const fileName = req.query.filename || 'course-image.jpg'; // Optional: Allow specifying filename
-
     const params = {
-      Bucket: 'goexpertly-bucket', // Replace with your bucket name
+      Bucket:contentType==='mp4'? 'goexpertly-bucket/WEBINARS': 'goexpertly-bucket/instructors', // Replace with your bucket name
       Key: fileName,
       Expires: 3600, // Pre-signed URL expires in 1 hour
-      ContentType: 'image/jpeg', // Replace with appropriate content type based on file extension
+      ContentType:  contentType, // Replace with appropriate content type based on file extension
     };
 
     try {
@@ -335,7 +430,6 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
   });
   router.post('/coupons', authenticateAdmin, async (req, res) => {
     try {
-      console.log(req.body);
       const { code, discountType, discountValue, description, startDate, endDate,isActive } = req.body;
   
       // Basic validation on server-side (consider using a validation library)
@@ -360,7 +454,6 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
     }
   });
   router.put('/coupons/:id', authenticateAdmin, async (req, res) => {
-    console.log(req.body);
     try {
       const couponId = req.params.id;
       const { code, discountType, discountValue, description, startDate, endDate, isActive } = req.body;
@@ -410,4 +503,112 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
       res.status(500).json({ message: 'Internal server error' });
     }
   });
+  // Create a new video
+router.post('/recordings', authenticateAdmin, async (req, res) => {
+  const { videoUrl, courseId } = req.body;
+
+  // Basic validation
+  if (!videoUrl) {
+    return res.status(400).json({ message: 'Missing required field: videoUrl' });
+  }
+  if (!courseId) {
+    return res.status(400).json({ message: 'Missing required field: courseId' });
+  }
+  try {
+    const newVideo = await Video.create({ videoUrl, courseId });
+    res.status(201).json(newVideo);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error occurred' });
+  }
+});
+
+// Get all videos for a specific course
+router.get('/courses/:courseId/videos',authenticateAdmin, async (req, res) => {
+  const courseId = req.params.courseId;
+
+  try {
+    const videos = await Video.findAll({ where: { courseId } });
+    res.status(200).json(videos);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch videos' });
+  }
+});
+
+// Get a specific video by ID
+router.get('/recordings/:videoId',authenticateAdmin, async (req, res) => {
+  const videoId = req.params.videoId;
+
+  try {
+    const video = await Video.findByPk(videoId);
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+    res.status(200).json(video);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch video' });
+  }
+});
+
+// Update a video
+router.put('/recordings/:videoId', authenticateAdmin, async (req, res) => {
+  const videoId = req.params.videoId;
+  const { videoUrl } = req.body;
+
+  // Basic validation
+  if (!videoUrl) {
+    return res.status(400).json({ message: 'Missing required field: videoUrl' });
+  }
+
+  try {
+    const video = await Video.findByPk(videoId);
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+    video.videoUrl = videoUrl;
+    await video.save();
+    res.status(200).json(video);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to update video' });
+  }
+});
+
+// Delete a video
+router.delete('/recordings/:videoId', authenticateAdmin, async (req, res) => {
+  const videoId = req.params.videoId;
+
+  try {
+    const deletedCount = await Video.destroy({ where: { id: videoId } });
+    if (deletedCount === 0) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+    res.status(200).json({ message: 'Video deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to delete video' });
+  }
+});
+router.get('/recordings', authenticateAdmin, async (req, res) => {
+  try {
+    const videos = await Video.findAll();
+    if (!videos) {
+      return res.status(404).json({ message: 'No videos found' });
+    }
+    // Create an array to store course data for each video
+    const videosWithCourses = await Promise.all(videos.map(async (video) => {
+      const course = await Course.findOne({ where: { courseId: video.courseId } });
+      return {
+        ...video.dataValues,
+        ...course.dataValues
+      };
+    }));
+    res.status(200).json(videosWithCourses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch courses and videos' });
+  }
+});
 module.exports = router;

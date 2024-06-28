@@ -12,6 +12,9 @@ const { sequelize: adminSequelize } = require('./models/Admin');
 const { sequelize: courseSequelize } = require('./models/Course');
 const { sequelize: enrollmentSequelize } = require('./models/Enrollment');
 const { sequelize: couponSequelize } = require('./models/Coupon');
+const { sequelize: siteSequelize } = require('./models/Site');
+const { sequelize: contactSequelize } = require('./models/Contact');
+const { sequelize: videoSequelize } = require('./models/Video');
 const app = express();
 
 app.use(bodyParser.json());
@@ -105,6 +108,27 @@ courseSequelize.sync()
   })
   .catch((error) => {
     console.error('Error synchronizing Coupon model:', error);
+  });
+  siteSequelize.sync()
+  .then(() => {
+    console.log('Site model synchronized with database');
+  })
+  .catch((error) => {
+    console.error('Error synchronizing Site model:', error);
+  });
+  contactSequelize.sync()
+  .then(() => {
+    console.log('Contact model synchronized with database');
+  })
+  .catch((error) => {
+    console.error('Error synchronizing Contact model:', error);
+  });
+  videoSequelize.sync()
+  .then(() => {
+    console.log('Video model synchronized with database');
+  })
+  .catch((error) => {
+    console.error('Error synchronizing Video model:', error);
   });
 app.listen(port, () => {
   console.log(`Server is running on port http://localhost:${port}`);

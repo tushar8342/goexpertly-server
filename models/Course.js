@@ -1,6 +1,5 @@
 const { Sequelize, DataTypes } = require('sequelize');
 require('dotenv').config(); 
-
 const sequelize = new Sequelize(process.env.DATABASE_URL);
 
 const Course = sequelize.define('Course', {
@@ -59,6 +58,18 @@ const Course = sequelize.define('Course', {
   },
   content:{
     type: DataTypes.TEXT,
+    allowNull: true
+  },
+ siteId: {
+    type: DataTypes.INTEGER, 
+    allowNull: false,
+    references: {
+      model: 'sites', 
+      key: 'siteId' 
+    }
+  },
+  webinarDate: {
+    type: DataTypes.DATE, 
     allowNull: true
   }
 });

@@ -20,6 +20,10 @@ const User = sequelize.define('User', {
   phone: {
     type: DataTypes.STRING, 
     allowNull: false 
+  },  
+  siteId: {
+    type: DataTypes.INTEGER, 
+    allowNull: false 
   }
 });
 

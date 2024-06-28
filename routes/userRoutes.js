@@ -6,6 +6,8 @@ const Course = require("../models/Course");
 const User = require("../models/User");
 const Enrollment = require("../models/Enrollment");
 const Coupon  = require('../models/Coupon')
+const Contact  = require('../models/Contact')
+const Video = require('../models/Video')
 const sendGridMail = require("@sendgrid/mail");
 const AWS = require('aws-sdk');
 const PDFDocument = require('pdfkit');
@@ -16,7 +18,6 @@ const { log } = require("console");
 const logoPath = path.join(__dirname, 'logo.png');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 sendGridMail.setApiKey(process.env.SENDGRID_API_KEY);
-// console.log('sendGridMail:', sendGridMail)
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -27,7 +28,7 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
-  const { email, password, fullName,phone } = req.body;
+  const { email, password, fullName,phone,siteId=1 } = req.body;
 
   try {
     const existingUser = await User.findOne({
@@ -43,7 +44,8 @@ router.post("/signup", async (req, res) => {
       email,
       password: hashedPassword,
       fullName,
-      phone
+      phone,
+      siteId
     });
     if (!newUser) { // Handle potential errors during user creation
       return res.status(500).json({ message: "Failed to create user" });
@@ -132,9 +134,9 @@ router.get('/:userId', authenticateUser, async (req, res) => {
     const detailedCourses = await Promise.all(
       enrollments.map(async (enrollment) => {
         const course = await Course.findByPk(enrollment.courseId);
-        // const video = await Video.findOne({ where: { courseId: course.id } });
-        // const videoLink = video?.videoLink
-        const videoLink = 'https://goexpertly-bucket.s3.amazonaws.com/WEBINARS/Best+of+Dolby+Vision+12K+HDR+120fps.mp4';
+         const video = await Video.findOne({ where: { courseId:enrollment.courseId } });
+         const videoLink = video?.videoUrl||null
+        //const videoLink = 'https://goexpertly-bucket.s3.amazonaws.com/WEBINARS/Best+of+Dolby+Vision+12K+HDR+120fps.mp4';
         return { ...enrollment.dataValues, ...course.dataValues, videoLink }; // Combine enrollment and course data
       })
     );
@@ -634,6 +636,18 @@ router.post('/contactus', async (req, res) => {
     if (!firstName || !lastName || !email || !message) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+    // Create the contact data for database storage
+    const newContactData = {
+      name: `${firstName} ${lastName}`,
+      email,
+      message,
+      current_role: req.body.currentRole || null,
+      company_name: req.body.companyName || null,
+      company_address: req.body.companyAddress || null,
+      city: req.body.city || null,
+      country: req.body.country || null,
+    };
+    const newContact = await Contact.create(newContactData);
     // Create the email content
     const msg = {
       to: 'syed.p@goexpertly.com', 
@@ -654,7 +668,6 @@ router.post('/contactus', async (req, res) => {
     // Send the email with error handling
     await sendGridMail.send(msg)
       .then(() => {
-        console.log('Email sent successfully!');
         res.status(200).json({ message: 'Your message has been sent successfully!' });
       })
       .catch((error) => {
