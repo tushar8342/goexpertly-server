@@ -61,12 +61,8 @@ const Course = sequelize.define('Course', {
     allowNull: true
   },
  siteId: {
-    type: DataTypes.INTEGER, 
+    type: DataTypes.STRING(255), 
     allowNull: false,
-    references: {
-      model: 'Sites', 
-      key: 'siteId' 
-    }
   },
   webinarDate: {
     type: DataTypes.DATE, 

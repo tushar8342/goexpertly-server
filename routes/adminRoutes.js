@@ -211,7 +211,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
       what_you_will_learn,
       content,
       webinarDate,
-      siteId: siteId.length>0 ? siteId.join(',') : siteId,
+      siteId: siteId.length>0 ? siteId.join(',') : null,
     }, { transaction });
     await newCourse.addSite(siteId, { transaction });
     await transaction.commit(); 
@@ -287,7 +287,7 @@ router.get('/courses/:courseId', async (req, res) => {
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
-    const siteIdArray = await course.siteId;
+    const siteIdArray = await course.siteId.split(",");
     course.siteId=siteIdArray
     res.status(200).json(course);
   } catch (error) {
@@ -316,7 +316,6 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
     if (!courseToUpdate) {
       return res.status(404).json({ message: 'Course not found' });
     }
-    const siteIdString=siteId.join(",")
     // Update course details (optional)
     if (title || imageSrc || description || instructors || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId) {
       courseToUpdate.update({
@@ -334,7 +333,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
         what_you_will_learn,
         content,
         webinarDate,
-        siteId:siteIdString
+        siteId:siteId.length>0 ? siteId.join(',') : null
       }, { transaction });
     }
 
