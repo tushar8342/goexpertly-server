@@ -27,8 +27,14 @@ const s3 = new AWS.S3();
 
 const router = express.Router();
 
+const FRONTEND_URL_MAP = {
+  1: 'https://www.goexpertly.com',
+  2: 'https://www.eductre.com',
+  // ... add mappings for siteId 3 to 8
+};
+
 router.post("/signup", async (req, res) => {
-  const { email, password, fullName,phone,siteId=1 } = req.body;
+  const { email, password, fullName,phone } = req.body;
 
   try {
     const existingUser = await User.findOne({
@@ -45,7 +51,7 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       fullName,
       phone,
-      siteId
+      siteId:siteId?siteId:1
     });
     if (!newUser) { // Handle potential errors during user creation
       return res.status(500).json({ message: "Failed to create user" });
@@ -176,7 +182,7 @@ router.post("/reset-password",authenticateUser, async (req, res) => {
 });
 
 router.post("/enroll",authenticateUser, async (req, res) => {
-  const {cartItems, couponCode } = req.body;
+  const {cartItems, couponCode,siteId } = req.body;
   const {userId} = req.user
   try {
     const user = await User.findByPk(userId);
@@ -190,7 +196,8 @@ router.post("/enroll",authenticateUser, async (req, res) => {
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
       }
-      coursePrices.push(course.price * 100);
+      const coursePrice = course.discountedPrice || course.price;
+      coursePrices.push(coursePrice * 100);
     }
 
     // Validate and apply coupon (if provided)
@@ -217,13 +224,15 @@ router.post("/enroll",authenticateUser, async (req, res) => {
     if (courseInfoString.length > 0) {
       courseInfoString = courseInfoString.slice(0, -1); // Remove the last two characters (", ")
     }
+    const FRONTEND_URL = FRONTEND_URL_MAP[siteId];
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       customer_email: user.email,
       metadata: {
         userId,
         courseInfoString,
-        couponCode
+        couponCode,
+        siteId
       },
       line_items: cartItems.map((item, index) => ({
         price_data: {
@@ -237,8 +246,8 @@ router.post("/enroll",authenticateUser, async (req, res) => {
         quantity: 1,
       })),
       mode: "payment",
-      success_url: `${process.env.FRONTEND_URL}/payment-success/{CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      success_url: `${FRONTEND_URL}/payment-success/{CHECKOUT_SESSION_ID}`,
+      cancel_url: `${FRONTEND_URL}/payment-cancel`,
       billing_address_collection: 'required',
     });
     res.status(200).json({ sessionId: session.id });
@@ -259,11 +268,12 @@ router.get("/enrollment/success", async (req, res) => {
       const courseIdsString = checkoutSession.metadata.courseInfoString;
       const courseIds = courseIdsString.split(",");
       const addressData = checkoutSession.customer_details.address
+      const siteId = checkoutSession.metadata.siteId
         // Loop through course IDs and create enrollments
       const enrollments = [];
       const rowData = [];
       for (const courseId of courseIds) {
-      const enrollment = await Enrollment.create({ userId, courseId,siteId:1 }, { returning: true });
+      const enrollment = await Enrollment.create({ userId, courseId,siteId }, { returning: true });
       enrollments.push(enrollment); // Add enrollment object to the array
       // Populate rowData dynamically
       const course = await Course.findByPk(enrollment.courseId);
@@ -271,7 +281,7 @@ router.get("/enrollment/success", async (req, res) => {
       rowData.push({
         webinarName: course.title,
         format: "Recorded", // Modify if format varies
-        unitPrice: course.price,
+        unitPrice: course.discountedPrice||course.price,
         discount: 0,
         description:course.description
         });
@@ -602,15 +612,17 @@ router.post('/coupons/apply', async (req, res) => {
         return res.status(404).json({ message: 'Course not found' });
       }
 
-      let discountedPrice = course.price;
+      // Calculate discounted price
+      const coursePrice=course.discountedPrice||course.price;
+      let discountedPrice =coursePrice;
         if (coupon.discountType === 'percentage') {
-          discountedPrice = course.price * (coupon.discountValue / 100);
+          discountedPrice = coursePrice * (coupon.discountValue / 100);
         } else if (coupon.discountType === 'fixed_amount') {
-          discountedPrice = Math.max(course.price - coupon.discountValue, 0); // Ensure price doesn't go below zero
+          discountedPrice = Math.max(coursePrice - coupon.discountValue, 0); // Ensure price doesn't go below zero
         }
       
 
-      totalOriginalPrice += course.price * quantity;
+      totalOriginalPrice += coursePrice * quantity;
       totalDiscountedPrice += discountedPrice * quantity;
 
       // Update the item object with the discounted price for frontend display (optional)
