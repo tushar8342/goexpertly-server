@@ -510,7 +510,7 @@ doc
 
 // Footer
 const siteName= siteNameMap[siteId]
-const footerText = siteId === 1 ? '' : `${siteName} is owned and operated by Expertly LLC. (Kindly note: the charge on your card will be from Expertly)`;
+const footerText = siteId === "1" ? '' : `${siteName} is owned and operated by Expertly LLC. (Kindly note: the charge on your card will be from Expertly)`;
 doc
   .fontSize(10)
   .text(
