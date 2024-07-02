@@ -32,7 +32,16 @@ const FRONTEND_URL_MAP = {
   2: 'https://www.eductre.com',
   // ... add mappings for siteId 3 to 8
 };
-
+const siteNameMap = {
+  1: 'GoExpertly', // Hide for siteId 1
+  2: 'Eductre',
+  3: 'siteName3', // Replace with the actual site name for siteId 3
+  4: 'siteName4', // Replace with the actual site name for siteId 4
+  5: 'siteName5', // Replace with the actual site name for siteId 5
+  6: 'siteName6', // Replace with the actual site name for siteId 6
+  7: 'siteName7', // Replace with the actual site name for siteId 7
+  8: 'education'
+};
 router.post("/signup", async (req, res) => {
   const { email, password, fullName,phone } = req.body;
 
@@ -500,10 +509,12 @@ doc
   .moveDown(5);
 
 // Footer
+const siteName= siteNameMap[siteId]
+const footerText = siteId === 1 ? '' : `${siteName} is owned and operated by Expertly LLC. (Kindly note: the charge on your card will be from Expertly)`;
 doc
   .fontSize(10)
   .text(
-    "AAA is owned and operated by Expertly LLC. (Kindly note: the charge on your card will be from Expertly)",
+    footerText,
     50
   )
 
