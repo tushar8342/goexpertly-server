@@ -28,7 +28,7 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 const FRONTEND_URL_MAP = {
-  1: 'http://localhost:3000',
+  1: 'https://www.goexpertly.com',
   2: 'https://www.eductre.com',
   // ... add mappings for siteId 3 to 8
 };
