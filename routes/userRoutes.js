@@ -28,7 +28,7 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 const FRONTEND_URL_MAP = {
-  1: 'https://www.goexpertly.com',
+  1: 'http://localhost:3000',
   2: 'https://www.eductre.com',
   // ... add mappings for siteId 3 to 8
 };
@@ -224,7 +224,7 @@ router.post("/enroll",authenticateUser, async (req, res) => {
     if (courseInfoString.length > 0) {
       courseInfoString = courseInfoString.slice(0, -1); // Remove the last two characters (", ")
     }
-    const FRONTEND_URL = FRONTEND_URL_MAP[siteId];
+    const FRONTEND_URL = siteId ? FRONTEND_URL_MAP[siteId] : FRONTEND_URL_MAP[1];
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       customer_email: user.email,
@@ -232,7 +232,7 @@ router.post("/enroll",authenticateUser, async (req, res) => {
         userId,
         courseInfoString,
         couponCode,
-        siteId
+        siteId:siteId?siteId:1
       },
       line_items: cartItems.map((item, index) => ({
         price_data: {
@@ -261,7 +261,7 @@ router.get("/enrollment/success", async (req, res) => {
   const sessionId = req.query.session_id;
   try {
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log(checkoutSession);
+    //console.log(checkoutSession);
     if (checkoutSession.payment_status === "paid") {
       const userId = checkoutSession.metadata.userId;
       const couponCode=checkoutSession.metadata.couponCode;
@@ -277,7 +277,7 @@ router.get("/enrollment/success", async (req, res) => {
       enrollments.push(enrollment); // Add enrollment object to the array
       // Populate rowData dynamically
       const course = await Course.findByPk(enrollment.courseId);
-      console.log(course);
+      //console.log(course);
       rowData.push({
         webinarName: course.title,
         format: "Recorded", // Modify if format varies
