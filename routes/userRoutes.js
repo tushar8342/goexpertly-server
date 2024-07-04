@@ -43,7 +43,7 @@ const siteNameMap = {
   8: 'education'
 };
 router.post("/signup", async (req, res) => {
-  const { email, password, fullName,phone } = req.body;
+  const { email, password, fullName,phone,siteId } = req.body;
 
   try {
     const existingUser = await User.findOne({
