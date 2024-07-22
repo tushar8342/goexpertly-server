@@ -30,18 +30,29 @@ const router = express.Router();
 const FRONTEND_URL_MAP = {
   1: 'https://www.goexpertly.com',
   2: 'https://www.eductre.com',
-  // ... add mappings for siteId 3 to 8
+  3: 'https://www.gradeage.com',
+  4: 'https://www.theprofess.com',
+  5: 'https://www.mytutorstation.com',
+  6: 'https://www.wishlearners.com',
+  7: 'https://www.wiservisions.com',
+  8: 'https://www.meritcourses.com',
+  9: 'https://www.learnyng.com',
+  10: 'https://www.tutorshour.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
   2: 'Eductre',
-  3: 'siteName3', // Replace with the actual site name for siteId 3
-  4: 'siteName4', // Replace with the actual site name for siteId 4
-  5: 'siteName5', // Replace with the actual site name for siteId 5
-  6: 'siteName6', // Replace with the actual site name for siteId 6
-  7: 'siteName7', // Replace with the actual site name for siteId 7
-  8: 'education'
+  3: 'Gradeage',
+  4: 'Theprofess',
+  5: 'Mytutorstation', 
+  6: 'Wishlearners', 
+  7: 'Wiservisions', 
+  8: 'Meritcourses',
+  9: 'Learnyng',
+  10: 'Tutorshour',
 };
+  const logoPathToCopySite=(siteId) =>{ 
+    return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
 router.post("/signup", async (req, res) => {
   const { email, password, fullName,phone,siteId } = req.body;
 
@@ -361,7 +372,9 @@ const total = totalOriginalPrice.toFixed(2)-totalDiscount.toFixed(2);
       doc.pipe(pdfStream);
       // Pipe the PDF into a writable stream
       doc.image(logoPath, 25,5, { width: 150 }); // Adjust position and size as needed
-
+      if (siteId !== 1) { 
+        doc.image(logoPathToCopySite(siteId), 300, 5, { width: 150 });
+      }
       // Move the cursor down to start writing text below the logo
       doc.moveDown(3);
     // Header

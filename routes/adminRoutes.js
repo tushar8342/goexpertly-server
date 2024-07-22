@@ -10,6 +10,7 @@ const Coupon  = require('../models/Coupon')
 const Site  = require('../models/Site')
 const Contact = require('../models/Contact')
 const Video = require('../models/Video')
+const Price = require('../models/Price');
 
 const { Sequelize, DataTypes } = require('sequelize');
 require('dotenv').config();
@@ -189,7 +190,7 @@ router.delete('/users/:userId', async (req, res) => {
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
   try {
-    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content,webinarDate,siteId } = req.body;
+    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content,webinarDate,siteId,pricingData } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
@@ -212,7 +213,16 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
       content,
       webinarDate,
       siteId: siteId.length>0 ? siteId.join(',') : null,
+      pricingData
     }, { transaction });
+    for (const pricingEntry of pricingData) {
+      await Price.create({
+        courseId: newCourse.courseID,
+        attendeeCount: pricingEntry.attendeeCount,
+        price: pricingEntry.price,
+        sessionType: pricingEntry.sessionType,
+      }, { transaction });
+    }
     await newCourse.addSite(siteId, { transaction });
     await transaction.commit(); 
     res.status(201).json(newCourse);
@@ -226,11 +236,16 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
 router.get('/courses', async (req, res) => {
   try {
     const courses = await Course.findAll({
-      include: {
+      include: [{
         model: Site,
         as:'Sites',
         attributes: ['siteId', 'name'], // Include only necessary site attributes
       },
+      {
+        model: Price,
+        as: 'Pricings',
+      }
+    ]
     });
     const coursesWithSiteId = courses.map((course) => {
       if (typeof course.siteId === 'string') {
@@ -261,10 +276,16 @@ router.get('/courses/search', async (req, res) => {
           { title: { [Op.like]: `%${keyword}%` } },
           { description: { [Op.like]: `%${keyword}%` } }
         ]
-      },include: [{
+      }, include: [{
         model: Site,
-        as: 'Sites' // Same alias as in the model definition
-      }]
+        as:'Sites',
+        attributes: ['siteId', 'name'], // Include only necessary site attributes
+      },
+      {
+        model: Price,
+        as: 'Pricings',
+      }
+    ]
     });
 
     res.status(200).json(courses);
@@ -278,11 +299,16 @@ router.get('/courses/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const course = await Course.findByPk(courseId,{
-      include: {
+      include: [{
         model: Site,
         as:'Sites',
         attributes: ['siteId', 'name'], // Include only necessary site attributes
       },
+      {
+        model: Price,
+        as: 'Pricings',
+      }
+    ]
     });
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -300,7 +326,7 @@ router.get('/courses/:courseId', async (req, res) => {
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
   const transaction = await sequelize.transaction();
   const courseId = req.params.courseId;
-  const { title, imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features, what_you_will_learn, content,webinarDate, siteId } = req.body;
+  const { title, imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features, what_you_will_learn, content,webinarDate, siteId,Pricings  } = req.body;
 
   // Basic validation (consider using a validation library for more complex checks)
   if (!courseId) {
@@ -317,7 +343,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
     // Update course details (optional)
-    if (title || imageSrc || description || instructors || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId) {
+    if (title || imageSrc || description || instructors || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId||Pricings ) {
       courseToUpdate.update({
         title,
         imageSrc,
@@ -339,6 +365,23 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
 
     // Update site association
     await courseToUpdate.setSites(siteId, { transaction });
+
+    // Update pricing data (if provided)
+    // if (Pricings) {
+    //   const priceUpdates = Pricings.map(priceData => ({
+    //     where: { id: priceData.id },
+    //     data: {
+    //       attendeeCount: priceData.attendeeCount,
+    //       price: priceData.price,
+    //       sessionType: priceData.sessionType,
+    //     },
+    //   }));
+    // console.log(priceUpdates)
+    //   // Loop and update each price entry
+    //   for (const updateData of priceUpdates) {
+    //     await Price.update(updateData.data, { where: updateData.where, transaction });
+    //   }
+    // } 
     const updatedCourse = await Course.findByPk(courseId, { transaction });
     await transaction.commit();
     res.json(updatedCourse);
@@ -351,12 +394,18 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
 
 // Delete course
 router.delete('/courses/:courseId', authenticateAdmin, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  const courseId = req.params.courseId;
   try {
-    const courseId = req.params.courseId;
-    const deletedRowCount = await Course.destroy({ where: { CourseID: courseId } });
+    // Delete associated prices (within transaction)
+    await Price.destroy({ where: { courseId }, transaction });
+
+    // Delete the course
+    const deletedRowCount = await Course.destroy({ where: { courseId }, transaction });
     if (deletedRowCount === 0) {
       return res.status(404).json({ message: 'Course not found' });
     }
+    await transaction.commit();
     res.status(200).json({ message: 'Course deleted successfully' });
   } catch (error) {
     console.error(error);
