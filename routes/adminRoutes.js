@@ -420,7 +420,7 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
         { model: User, as: 'User', attributes: ['id', 'fullName','phone','siteId','email'] },
         { model: Course, as: 'Course', attributes: ['courseID', 'title'] },
       ],
-      attributes: ['id', 'userId', 'courseId', 'invoiceUrl'],
+      attributes: ['id', 'userId', 'courseId', 'invoiceUrl','sessionType'],
     });
     res.status(200).json(enrollments);
   } catch (error) {

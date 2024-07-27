@@ -8,6 +8,7 @@ const Enrollment = require("../models/Enrollment");
 const Coupon  = require('../models/Coupon')
 const Contact  = require('../models/Contact')
 const Video = require('../models/Video')
+const Pricing = require('../models/Price')
 const sendGridMail = require("@sendgrid/mail");
 const AWS = require('aws-sdk');
 const PDFDocument = require('pdfkit');
@@ -28,7 +29,7 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 const FRONTEND_URL_MAP = {
-  1: 'https://www.goexpertly.com',
+  1: 'http://localhost:3000',
   2: 'https://www.eductre.com',
   3: 'https://www.gradeage.com',
   4: 'https://www.theprofess.com',
@@ -159,9 +160,14 @@ router.get('/:userId', authenticateUser, async (req, res) => {
     // Fetch course details efficiently
     const detailedCourses = await Promise.all(
       enrollments.map(async (enrollment) => {
+        const pricing = await Pricing.findByPk(enrollment.priceId);
         const course = await Course.findByPk(enrollment.courseId);
-         const video = await Video.findOne({ where: { courseId:enrollment.courseId } });
-         const videoLink = video?.videoUrl||null
+        let videoLink = null;
+        if (pricing.sessionType === "Recorded") {
+          const video = await Video.findOne({ where: { courseId: enrollment.courseId } });
+          videoLink = video?.videoUrl || null;
+          console.log(videoLink);
+        }
         //const videoLink = 'https://goexpertly-bucket.s3.amazonaws.com/WEBINARS/Best+of+Dolby+Vision+12K+HDR+120fps.mp4';
         return { ...enrollment.dataValues, ...course.dataValues, videoLink }; // Combine enrollment and course data
       })
@@ -211,20 +217,25 @@ router.post("/enroll",authenticateUser, async (req, res) => {
     }
 
     const coursePrices = [];
+    const sessionPricesIds = [];
     for (const item of cartItems) {
       const course = await Course.findByPk(item.courseID);
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
       }
-      const coursePrice = course.discountedPrice || course.price;
-      coursePrices.push(coursePrice * 100);
+      // Find the user-selected pricing option based on item.priceId
+      const sessionPrice = await Pricing.findByPk(item.selectedPricing.id);
+      const coursePrice = sessionPrice ? sessionPrice.price * 100 : (course.discountedPrice || course.price) * 100; 
+      coursePrices.push(coursePrice);
+      sessionPricesIds.push(sessionPrice.id);
     }
 
     // Validate and apply coupon (if provided)
     let discountApplied = false;
     let totalAmount = coursePrices.reduce((sum, price) => sum + price, 0);
+    let coupon;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ where: { code: couponCode, isActive: true } }); // Find active coupon by code
+      coupon = await Coupon.findOne({ where: { code: couponCode, isActive: true } }); // Find active coupon by code
       if (coupon) {
         discountApplied = true;
         if (coupon.discountType === "percentage") {
@@ -252,16 +263,17 @@ router.post("/enroll",authenticateUser, async (req, res) => {
         userId,
         courseInfoString,
         couponCode,
-        siteId:siteId?siteId:1
+        siteId:siteId?siteId:1,
+        priceIds:sessionPricesIds.join(",")
       },
       line_items: cartItems.map((item, index) => ({
         price_data: {
           currency: "usd",
           product_data: {
             name: `${coursePrices[index]} - ${ item.course_name}`, // Include price in title
-            description: `Name: ${item.creator}`,
+            description: `Name: ${item.creator}, Session Type: ${item.selectedPricing.sessionType}`,
           },
-          unit_amount: discountApplied ? Math.round(totalAmount / cartItems.length) : coursePrices[index],
+          unit_amount: discountApplied ? Math.round(coursePrices[index] * (1 - coupon.discountValue / 100)) : coursePrices[index],
         },
         quantity: 1,
       })),
@@ -289,22 +301,43 @@ router.get("/enrollment/success", async (req, res) => {
       const courseIds = courseIdsString.split(",");
       const addressData = checkoutSession.customer_details.address
       const siteId = checkoutSession.metadata.siteId
-        // Loop through course IDs and create enrollments
+    // Extract price IDs from metadata (considering potential errors)
+    console.log(checkoutSession.metadata);
+    let priceIds;
+    try {
+      priceIds = checkoutSession.metadata.priceIds.includes(',')? 
+      priceIds = checkoutSession.metadata.priceIds.split(','):
+      priceIds = [checkoutSession.metadata.priceIds];
+    } catch (error) {
+      console.error("Error parsing priceIds:", error);
+      priceIds = []; // Handle gracefully if parsing fails
+    }        // Loop through course IDs and create enrollments
+    console.log(priceIds);
       const enrollments = [];
       const rowData = [];
       for (const courseId of courseIds) {
-      const enrollment = await Enrollment.create({ userId, courseId,siteId }, { returning: true });
+      const priceId = priceIds.shift();
+      let coursePrice;
+      try {
+        coursePrice = await Pricing.findByPk(priceId);
+      } catch (error) {
+        console.error("Error finding price for course:", courseId, error);
+        coursePrice = null; // Handle case where price lookup fails
+      }
+      sessionType = coursePrice.sessionType;
+      const enrollment = await Enrollment.create({ userId, courseId,siteId,priceId,sessionType }, { returning: true });
       enrollments.push(enrollment); // Add enrollment object to the array
+      
       // Populate rowData dynamically
       const course = await Course.findByPk(enrollment.courseId);
-      //console.log(course);
+      console.log(coursePrice);
       rowData.push({
         webinarName: course.title,
-        format: "Recorded", // Modify if format varies
-        unitPrice: course.discountedPrice||course.price,
+        format:coursePrice ? coursePrice.sessionType : "Unknown", 
+        unitPrice: coursePrice?.price||course.discountedPrice||course.price,
         discount: 0,
-        description:course.description
-        });
+        description:course.description,
+        sessionType: coursePrice ? coursePrice.sessionType : "Unknown"        });
       }
       const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const orderNumber=`${enrollments[0].id}${now}`
@@ -372,7 +405,7 @@ const total = totalOriginalPrice.toFixed(2)-totalDiscount.toFixed(2);
       doc.pipe(pdfStream);
       // Pipe the PDF into a writable stream
       doc.image(logoPath, 25,5, { width: 150 }); // Adjust position and size as needed
-      if (siteId !== 1) { 
+      if (siteId !== "1") { 
         doc.image(logoPathToCopySite(siteId), 300, 5, { width: 150 });
       }
       // Move the cursor down to start writing text below the logo
@@ -637,7 +670,7 @@ router.post('/coupons/apply', async (req, res) => {
       }
 
       // Calculate discounted price
-      const coursePrice=course.discountedPrice||course.price;
+      const coursePrice = item?.selectedPricing?.price||course.discountedPrice||course.price;
       let discountedPrice =coursePrice;
         if (coupon.discountType === 'percentage') {
           discountedPrice = coursePrice * (coupon.discountValue / 100);

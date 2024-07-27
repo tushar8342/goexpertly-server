@@ -26,6 +26,14 @@ const Enrollment = sequelize.define('Enrollments', {
   siteId: {
     type: DataTypes.INTEGER, 
     allowNull: false 
+  },
+  priceId:{
+    type: DataTypes.STRING, 
+    allowNull: false
+  },
+  sessionType:{
+    type: DataTypes.STRING, 
+    allowNull: false
   }
 });
 Enrollment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
