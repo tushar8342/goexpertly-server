@@ -190,7 +190,7 @@ router.delete('/users/:userId', async (req, res) => {
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
   try {
-    const { title,imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features,what_you_will_learn,content,webinarDate,siteId,pricingData } = req.body;
+      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archive,pricingData } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
@@ -200,19 +200,25 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
     const newCourse = await Course.create({
       title,
       imageSrc,
-      instructors: instructors? instructors  : null, // Handle optional array field
+      instructor: instructor? instructor  : null, // Handle optional array field
       duration,
       price,
       discountedPrice,
       rating,
       numReviews,
       detailsLink,
-      features: features ? features : null, // Handle optional array field
+      background: background ? background : null, // Handle optional array field
       description,
-      what_you_will_learn,
-      content,
+      who_will_benefit,
+      areas_covered,
       webinarDate,
       siteId: siteId.length>0 ? siteId.join(',') : null,
+      why_register, 
+      level, 
+      target_companies, 
+      target_association, 
+      instructor_profile, 
+      archive,
       pricingData
     }, { transaction });
     for (const pricingEntry of pricingData) {
@@ -326,7 +332,7 @@ router.get('/courses/:courseId', async (req, res) => {
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
   const transaction = await sequelize.transaction();
   const courseId = req.params.courseId;
-  const { title, imageSrc, description, instructors, duration, price, discountedPrice, rating, numReviews, detailsLink, features, what_you_will_learn, content,webinarDate, siteId,Pricings  } = req.body;
+  const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archive } = req.body;
 
   // Basic validation (consider using a validation library for more complex checks)
   if (!courseId) {
@@ -347,19 +353,25 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
       courseToUpdate.update({
         title,
         imageSrc,
-        instructors: instructors ? instructors : null,
+        instructor: instructor ? instructor : null,
         duration,
         price,
         discountedPrice,
         rating,
         numReviews,
         detailsLink,
-        features: features ? features : null,
+        background: background ? background : null,
         description,
-        what_you_will_learn,
-        content,
+        who_will_benefit,
+        areas_covered,
         webinarDate,
-        siteId:siteId.length>0 ? siteId.join(',') : null
+        siteId:siteId.length>0 ? siteId.join(',') : null,
+        why_register, 
+        level, 
+        target_companies, 
+        target_association, 
+        instructor_profile, 
+        archive,
       }, { transaction });
     }
 

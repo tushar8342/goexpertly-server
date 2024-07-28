@@ -16,7 +16,7 @@ const Course = sequelize.define('Course', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  instructors: { // Array of instructor names
+  instructor: { 
     type: DataTypes.STRING(255),
     allowNull: true
   },
@@ -44,7 +44,7 @@ const Course = sequelize.define('Course', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  features: { // Array of strings representing features
+  background: { // Array of strings representing features
     type: DataTypes.STRING(255),
     allowNull: true
   },
@@ -52,11 +52,11 @@ const Course = sequelize.define('Course', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  what_you_will_learn:{
+  who_will_benefit:{
     type: DataTypes.TEXT,
     allowNull: true
   },
-  content:{
+  areas_covered:{
     type: DataTypes.TEXT,
     allowNull: true
   },
@@ -67,6 +67,30 @@ const Course = sequelize.define('Course', {
   webinarDate: {
     type: DataTypes.DATE, 
     allowNull: true
+  },
+  why_register:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  },
+  level:{
+    type:DataTypes.STRING(255),
+    allowNull:true
+  },
+  target_companies:{
+    type:DataTypes.STRING(255),
+    allowNull:true
+  },
+  target_association:{
+    type:DataTypes.STRING(255),
+    allowNull:true
+  },
+  instructor_profile:{
+    type:DataTypes.TEXT,
+    allowNull:true
+  }, 
+  archieve:{
+    type:DataTypes.BOOLEAN,
+    allowNull:true
   }
 });
 
