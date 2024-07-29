@@ -163,7 +163,12 @@ router.get('/:userId', authenticateUser, async (req, res) => {
         const pricing = await Pricing.findByPk(enrollment.priceId);
         const course = await Course.findByPk(enrollment.courseId);
         let videoLink = null;
-        if (pricing.sessionType === "Recorded") {
+        const allowedSessionTypes = [
+          "Downloadable recorded session",
+          "Live plus recorded session",
+          "Downloadable Plus Transcript session"
+        ];
+        if (allowedSessionTypes.includes(pricing.sessionType)) {
           const video = await Video.findOne({ where: { courseId: enrollment.courseId } });
           videoLink = video?.videoUrl || null;
           console.log(videoLink);
