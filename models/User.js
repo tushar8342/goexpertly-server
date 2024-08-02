@@ -1,9 +1,6 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
-
-const sequelize = new Sequelize(process.env.DATABASE_URL);
-
-const User = sequelize.define('User', {
+const { DataTypes } = require('sequelize');
+const db = require('./db');
+const User = db.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,

@@ -1,8 +1,6 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
-const sequelize = new Sequelize(process.env.DATABASE_URL);
-
-const Contact = sequelize.define('Contact', {
+const { DataTypes } = require('sequelize');
+const db = require('./db');
+const Contact = db.define('Contact', {
     name: {
       type: DataTypes.STRING,
       allowNull: false,

@@ -1,8 +1,7 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
-const sequelize = new Sequelize(process.env.DATABASE_URL);
+const { DataTypes } = require('sequelize');
+const db = require('./db');
 const Course = require('./Course');
-const Site = sequelize.define('Site', {
+const Site = db.define('Site', {
     siteId: {
       type: DataTypes.INTEGER,
       primaryKey: true,

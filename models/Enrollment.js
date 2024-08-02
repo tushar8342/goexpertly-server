@@ -1,10 +1,9 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
+const { DataTypes } = require('sequelize');
+const db = require('./db');
 const User = require('./User');
 const Course = require('./Course');
-const sequelize = new Sequelize(process.env.DATABASE_URL);
 
-const Enrollment = sequelize.define('Enrollments', {
+const Enrollment = db.define('Enrollments', {
   userId: {
     type: DataTypes.INTEGER,
     references: {

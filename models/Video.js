@@ -1,8 +1,6 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
-const sequelize = new Sequelize(process.env.DATABASE_URL);
-
-  const Video = sequelize.define('Video', {
+const { DataTypes } = require('sequelize');
+const db = require('./db');
+  const Video = db.define('Video', {
     id:{ 
         allowNull: false,
         autoIncrement: true,

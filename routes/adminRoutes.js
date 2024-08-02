@@ -11,10 +11,9 @@ const Site  = require('../models/Site')
 const Contact = require('../models/Contact')
 const Video = require('../models/Video')
 const Price = require('../models/Price');
+const db = require('../models/db');
 
-const { Sequelize, DataTypes } = require('sequelize');
 require('dotenv').config();
-const sequelize = new Sequelize(process.env.DATABASE_URL);
 const router = express.Router();
 const { Op } = require('sequelize');
 const AWS = require('aws-sdk');
@@ -196,7 +195,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
     if (!title || !description || !price) {
       return res.status(400).json({ message: 'Missing required fields: title, description, and price' });
     }
-    const transaction = await sequelize.transaction();
+    const transaction = await db.transaction();
     const newCourse = await Course.create({
       title,
       imageSrc,
@@ -330,7 +329,7 @@ router.get('/courses/:courseId', async (req, res) => {
 
 // Update course information
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await db.transaction();
   const courseId = req.params.courseId;
   const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archive } = req.body;
 
@@ -340,7 +339,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
   }
 
   try {
-    const transaction = await sequelize.transaction();
+    const transaction = await db.transaction();
 
     // Find the course by ID
     const courseToUpdate = await Course.findByPk(courseId, { transaction });
@@ -406,7 +405,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
 
 // Delete course
 router.delete('/courses/:courseId', authenticateAdmin, async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await db.transaction();
   const courseId = req.params.courseId;
   try {
     // Delete associated prices (within transaction)

@@ -1,8 +1,6 @@
-const { Sequelize, DataTypes } = require('sequelize');
-require('dotenv').config(); 
-const sequelize = new Sequelize(process.env.DATABASE_URL);
-
-  const Coupon = sequelize.define('Coupon', {
+const { DataTypes } = require('sequelize');
+const db = require('./db');
+  const Coupon = db.define('Coupon', {
     code: {
       type: DataTypes.STRING,
       allowNull: false,
