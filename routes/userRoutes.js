@@ -29,16 +29,16 @@ const s3 = new AWS.S3();
 const router = express.Router();
 
 const FRONTEND_URL_MAP = {
-  1: 'http://localhost:3000',
+  1: 'https://www.goexpertly.com',
   2: 'https://www.eductre.com',
   3: 'https://www.gradeage.com',
   4: 'https://www.theprofess.com',
   5: 'https://www.mytutorstation.com',
   6: 'https://www.wishlearners.com',
-  7: 'https://www.wiservisions.com',
-  8: 'https://www.meritcourses.com',
-  9: 'https://www.learnyng.com',
-  10: 'https://www.tutorshour.com',
+  7: 'https://www.studyassistants.com',
+  8: 'https://www.tutorshour.com',
+  9: 'https://www.wiservisions.com',
+  10: 'https://www.meritcourses.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -47,10 +47,10 @@ const siteNameMap = {
   4: 'Theprofess',
   5: 'Mytutorstation', 
   6: 'Wishlearners', 
-  7: 'Wiservisions', 
-  8: 'Meritcourses',
-  9: 'Learnyng',
-  10: 'Tutorshour',
+  7: 'Studyassistants',
+  8: 'Tutorshour',
+  9: 'Wiservisions', 
+  10: 'Meritcourses',
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
@@ -411,7 +411,7 @@ const total = totalOriginalPrice.toFixed(2)-totalDiscount.toFixed(2);
       // Pipe the PDF into a writable stream
       doc.image(logoPath, 25,5, { width: 150 }); // Adjust position and size as needed
       if (siteId !== "1") { 
-        doc.image(logoPathToCopySite(siteId), 300, 5, { width: 150 });
+        doc.image(logoPathToCopySite(siteId), 300, 70, { width: 150 });
       }
       // Move the cursor down to start writing text below the logo
       doc.moveDown(3);
