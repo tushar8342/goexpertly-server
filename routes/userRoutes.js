@@ -250,7 +250,11 @@ router.post("/forgot-password", async (req, res) => {
     const token = jwt.sign({ userId: user.id },process.env.JWT_SECRET, { expiresIn: '1h' }); // Adjust expiration time as needed
     const FRONTEND_URL = siteId ? FRONTEND_URL_MAP[siteId] : FRONTEND_URL_MAP[1];
     // Send reset password email with JWT
-    const resetLink = `${FRONTEND_URL}/forgot-password?token=${token}`;
+    const site = siteNameMap[siteId];
+    //use fromEmail in mailOptions after verifying sender emails
+    const fromEmail = `support@${site.toLowerCase()}.com`;
+    console.log(site,fromEmail)
+    const resetLink = `${FRONTEND_URL}/forgot-password/${token}`;
     const mailOptions = {
       from: 'support@goexpertly.com',
       to: email,
