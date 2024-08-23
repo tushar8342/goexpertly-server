@@ -54,6 +54,7 @@ const siteNameMap = {
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
+
 router.post("/signup", async (req, res) => {
   const { email, password, fullName,phone,siteId } = req.body;
 
@@ -185,33 +186,88 @@ router.get('/:userId', authenticateUser, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-router.post("/reset-password",authenticateUser, async (req, res) => {
-  const {oldPassword, newPassword } = req.body;
-  const {email} = req.user
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword, oldPassword,email } = req.body;
+
   try {
-    const user = await User.findOne({ where: { email } });
+    // Check if a token is provided
+    if (token) {
+      // Verify JWT
+      const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decodedToken.userId;
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      // Find user by ID
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update password using JWT
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedNewPassword;
+      await user.save();
+
+      res.status(200).json({ message:"Password reset successful" });
+    } else if (oldPassword && newPassword) {
+      // Find user by email
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Validate old password
+        const isValidPassword = await bcrypt.compare(oldPassword, user.password);
+        if (!isValidPassword) {
+          return res.status(401).json({message: "Invalid old password" });
+        }
+
+        // Update password using old password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedNewPassword;
+        await user.save();
+
+        res.status(200).json({   
+  message: "Password reset successful" });
+      } else {
+      // Handle the case where neither token nor old password is provided
+      return res.status(400).json({ message: "Missing required fields (token or old password)" });
     }
-
-    const isValidPassword = await bcrypt.compare(oldPassword, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid old password" });
-    }
-
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-
-    user.password = hashedNewPassword;
-    await user.save();
-
-    res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Password reset failed" });
   }
 });
-
+router.post("/forgot-password", async (req, res) => {
+  const { email,siteId } = req.body;
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    // Create JWT
+    const token = jwt.sign({ userId: user.id },process.env.JWT_SECRET, { expiresIn: '1h' }); // Adjust expiration time as needed
+    const FRONTEND_URL = siteId ? FRONTEND_URL_MAP[siteId] : FRONTEND_URL_MAP[1];
+    // Send reset password email with JWT
+    const resetLink = `${FRONTEND_URL}/forgot-password?token=${token}`;
+    const mailOptions = {
+      from: 'support@goexpertly.com',
+      to: email,
+      subject: 'Password Reset Link',
+      html: `
+        <p>You requested a password reset. Please click the following link to reset your password:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+      `
+    };
+    await sendGridMail.send(mailOptions);
+    res.json({ message: 'Password reset email sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error'   
+ });
+  }
+})
 router.post("/enroll",authenticateUser, async (req, res) => {
   const {cartItems, couponCode,siteId } = req.body;
   const {userId} = req.user
@@ -290,7 +346,7 @@ router.post("/enroll",authenticateUser, async (req, res) => {
     res.status(200).json({ sessionId: session.id });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to create enrollment session" });
+    res.status(500).json({ message:error});
   }
 });
 
@@ -455,8 +511,11 @@ const total = totalOriginalPrice.toFixed(2)-totalDiscount.toFixed(2);
     .moveDown(0.5)
     .font("Helvetica")
     .text(user.fullName, { align: "left" })
-    // .text("9806995591")
     .text(user.email)
+    .moveDown(0.5)
+    if(user.phone){
+      doc.font("Helvetica").text(user.phone)
+    }
     doc
     .font("Helvetica-Bold")
     .text("Bill To", 300, 250, { underline: true })
