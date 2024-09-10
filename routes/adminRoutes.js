@@ -273,26 +273,35 @@ router.get('/courses/search', async (req, res) => {
     if (!keyword) {
       return res.status(400).json({ message: 'Keyword is required for searching' });
     }
-
-    // Query courses based on the keyword
-    const courses = await Course.findAll({
-      where: {
+    let whereClause = {};
+    if (keyword) {
+      whereClause = {
         [Op.or]: [
-          { title: { [Op.like]: `%${keyword}%` } },
-          { description: { [Op.like]: `%${keyword}%` } }
+          {
+            title: {
+              [Op.like]: `%${keyword}%` // Case-insensitive search with wildcards in title
+            }
+          },
+          {
+            instructor: {
+              [Op.like]: `%${keyword}%` // Case-insensitive search with wildcards in instructor name
+            }
+          }
         ]
-      }, include: [{
+      };
+    }
+    const courses = await Course.findAll({
+      where: whereClause,
+      include: [{
         model: Site,
-        as:'Sites',
-        attributes: ['siteId', 'name'], // Include only necessary site attributes
+        as: 'Sites',
+        attributes: ['siteId', 'name'] // Include only necessary site attributes
       },
       {
         model: Price,
-        as: 'Pricings',
-      }
-    ]
+        as: 'Pricings'
+      }]
     });
-
     res.status(200).json(courses);
   } catch (error) {
     console.error(error);
