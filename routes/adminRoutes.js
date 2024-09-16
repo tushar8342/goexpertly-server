@@ -308,6 +308,40 @@ router.get('/courses/search', async (req, res) => {
     res.status(500).json({ message: 'Failed to search courses' });
   }
 });
+router.get('/courses/upcoming', async (req, res) => {
+  try {
+    const today = new Date();
+
+    const whereClause = {
+      webinarDate: {
+        [Op.gt]: today,
+      },
+    };
+    const limit = 4;
+
+    const order = [['webinarDate', 'ASC']];
+
+    const upcomingWebinars = await Course.findAll({
+      where: whereClause,
+      limit,
+      order,
+      include: [{
+        model: Site,
+        as: 'Sites',
+        attributes: ['siteId', 'name'] 
+      },
+      {
+        model: Price,
+        as: 'Pricings'
+      }],
+    });
+
+    res.status(200).json(upcomingWebinars);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to retrieve upcoming webinars' });
+  }
+});
 // Get a specific course by ID
 router.get('/courses/:courseId', async (req, res) => {
   try {
@@ -357,7 +391,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
     // Update course details (optional)
-    if (title || imageSrc || description || instructors || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId||Pricings ) {
+    if (title || imageSrc || description || instructor || duration || price || discountedPrice || rating || numReviews || detailsLink || features || what_you_will_learn || content||siteId||Pricings ) {
       courseToUpdate.update({
         title,
         imageSrc,
