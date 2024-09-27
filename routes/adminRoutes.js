@@ -189,7 +189,7 @@ router.delete('/users/:userId', async (req, res) => {
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
   try {
-      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archive,pricingData } = req.body;
+      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,pricingData } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
@@ -217,7 +217,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
       target_companies, 
       target_association, 
       instructor_profile, 
-      archive,
+      archieve,
       pricingData
     }, { transaction });
     for (const pricingEntry of pricingData) {
@@ -374,7 +374,7 @@ router.get('/courses/:courseId', async (req, res) => {
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
   const transaction = await db.transaction();
   const courseId = req.params.courseId;
-  const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archive } = req.body;
+  const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve } = req.body;
 
   // Basic validation (consider using a validation library for more complex checks)
   if (!courseId) {
@@ -413,7 +413,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
         target_companies, 
         target_association, 
         instructor_profile, 
-        archive,
+        archieve,
       }, { transaction });
     }
 
@@ -472,9 +472,9 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
     const enrollments = await Enrollment.findAll({
       include: [
         { model: User, as: 'User', attributes: ['id', 'fullName','phone','siteId','email'] },
-        { model: Course, as: 'Course', attributes: ['courseID', 'title'] },
+        { model: Course, as: 'Course', attributes: ['courseID', 'title','instructor','webinarDate'] },
       ],
-      attributes: ['id', 'userId', 'courseId', 'invoiceUrl','sessionType'],
+      attributes: ['id', 'userId', 'courseId', 'invoiceUrl','sessionType','createdAt'],
     });
     res.status(200).json(enrollments);
   } catch (error) {
