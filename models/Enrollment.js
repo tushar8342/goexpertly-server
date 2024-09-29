@@ -33,6 +33,14 @@ const Enrollment = db.define('Enrollments', {
   sessionType:{
     type: DataTypes.STRING, 
     allowNull: false
+  },
+  orderId: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  actualPricePaid: {
+    type: DataTypes.DECIMAL(10, 2), // Adjust precision and scale as needed
+    allowNull: false
   }
 });
 Enrollment.belongsTo(User, { as: 'User', foreignKey: 'userId' });

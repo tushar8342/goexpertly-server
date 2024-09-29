@@ -366,6 +366,7 @@ router.get("/enrollment/success", async (req, res) => {
       const courseIds = courseIdsString.split(",");
       const addressData = checkoutSession.customer_details.address
       const siteId = checkoutSession.metadata.siteId
+      const actualPricePaid=checkoutSession.amount_total
     // Extract price IDs from metadata (considering potential errors)
     console.log(checkoutSession.metadata);
     let priceIds;
@@ -390,7 +391,7 @@ router.get("/enrollment/success", async (req, res) => {
         coursePrice = null; // Handle case where price lookup fails
       }
       sessionType = coursePrice.sessionType;
-      const enrollment = await Enrollment.create({ userId, courseId,siteId,priceId,sessionType }, { returning: true });
+      const enrollment = await Enrollment.create({ userId, courseId,siteId,priceId,sessionType,actualPricePaid}, { returning: true });
       enrollments.push(enrollment); // Add enrollment object to the array
       
       // Populate rowData dynamically
@@ -682,7 +683,7 @@ doc.end();
       
       await sendGridMail.send(msg);
       for (const enrollment of enrollments) {
-        await enrollment.update({ invoiceUrl: s3Response.Location });
+        await enrollment.update({ invoiceUrl: s3Response.Location , orderId: orderNumber});
       }
       res.status(200).json({
         message: "Enrollment successful",

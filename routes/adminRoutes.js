@@ -115,7 +115,9 @@ router.delete('/inquires/:id', authenticateAdmin, async (req, res) => {
 router.get('/users', authenticateAdmin, async (req, res) => {
     try {
       // Fetch all users from the database
-      const users = await User.findAll();
+      const users = await User.findAll({
+        order: [['createdAt', 'DESC']],
+      });
   
       // Send the list of users in the response
       res.status(200).json(users);
@@ -317,7 +319,7 @@ router.get('/courses/upcoming', async (req, res) => {
         [Op.gt]: today,
       },
     };
-    const limit = 4;
+    const limit = 6;
 
     const order = [['webinarDate', 'ASC']];
 
@@ -474,7 +476,8 @@ router.get('/enrolls', authenticateAdmin, async (req, res) => {
         { model: User, as: 'User', attributes: ['id', 'fullName','phone','siteId','email'] },
         { model: Course, as: 'Course', attributes: ['courseID', 'title','instructor','webinarDate'] },
       ],
-      attributes: ['id', 'userId', 'courseId', 'invoiceUrl','sessionType','createdAt'],
+      attributes: ['id', 'userId', 'courseId', 'invoiceUrl','sessionType','createdAt','orderId','actualPricePaid'],
+      order: [['createdAt', 'DESC']],
     });
     res.status(200).json(enrollments);
   } catch (error) {
