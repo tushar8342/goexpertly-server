@@ -11,8 +11,9 @@ const Site  = require('../models/Site')
 const Contact = require('../models/Contact')
 const Video = require('../models/Video')
 const Price = require('../models/Price');
+const Instructor = require('../models/Instructor');
 const db = require('../models/db');
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 require('dotenv').config();
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -191,7 +192,7 @@ router.delete('/users/:userId', async (req, res) => {
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
   try {
-      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,pricingData } = req.body;
+      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,pricingData,instructorId } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
@@ -220,7 +221,8 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
       target_association, 
       instructor_profile, 
       archieve,
-      pricingData
+      pricingData,
+      instructorId
     }, { transaction });
     for (const pricingEntry of pricingData) {
       await Price.create({
@@ -715,5 +717,29 @@ router.get('/recordings', authenticateAdmin, async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Failed to fetch courses and videos' });
   }
+});
+router.get('/instructors', async (req, res) => {
+  try {
+    const instructors = await Instructor.findAll();
+    res.status(200).json(instructors);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error occurred' });
+  }
+});
+router.get('/instructors/:id', async (req, res) => {
+  const instructorId = parseInt(req.params.id);
+  try {
+    const courses = await Course.findAll({
+        where: {
+            instructorId
+        }
+    });
+
+    res.status(200).json(courses);
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch courses' });
+}
 });
 module.exports = router;

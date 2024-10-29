@@ -366,7 +366,7 @@ router.get("/enrollment/success", async (req, res) => {
       const courseIds = courseIdsString.split(",");
       const addressData = checkoutSession.customer_details.address
       const siteId = checkoutSession.metadata.siteId
-      const actualPricePaid=checkoutSession.amount_total
+      const actualPricePaid=(checkoutSession.amount_total/100)
     // Extract price IDs from metadata (considering potential errors)
     console.log(checkoutSession.metadata);
     let priceIds;

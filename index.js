@@ -16,6 +16,7 @@ const { sequelize: siteSequelize } = require('./models/Site');
 const { sequelize: contactSequelize } = require('./models/Contact');
 const { sequelize: videoSequelize } = require('./models/Video');
 const { sequelize: priceSequelize } = require('./models/Price');
+const { sequelize: instructorSequelize } = require('./models/Instructor');
 
 const app = express();
 
@@ -62,13 +63,11 @@ const options = {
   swaggerDefinition,
   apis: ['./docs/*.js'], // Path to the files containing Swagger annotations
 };
-
 // Initialize Swagger JSDoc
 const swaggerSpec = swaggerJsdoc(options);
 
 // Serve Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 // Routes
 app.use('/users', userRoutes);
 app.use('/admin', adminRoutes);
@@ -138,6 +137,13 @@ courseSequelize.sync()
   })
   .catch((error) => {
     console.error('Error synchronizing Price model:', error);
+  });
+  instructorSequelize.sync()
+  .then(() => {
+    console.log('Instructor model synchronized with database');
+  })
+  .catch((error) => {
+    console.error('Error synchronizing Instructor model:', error);
   });
 app.listen(port, () => {
   console.log(`Server is running on port http://localhost:${port}`);

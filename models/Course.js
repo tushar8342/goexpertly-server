@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const db = require('./db');
+const Instructor = require('./Instructor');
 const Course = db.define('Course', {
   courseID: {
     type: DataTypes.INTEGER,
@@ -89,6 +90,14 @@ const Course = db.define('Course', {
   archieve:{
     type:DataTypes.BOOLEAN,
     allowNull:true
+  },
+  instructorId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Instructors',
+      key: 'instructorID'
+    }
   }
 });
 
