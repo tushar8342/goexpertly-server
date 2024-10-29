@@ -38,7 +38,7 @@ const FRONTEND_URL_MAP = {
   7: 'https://www.studyassistants.com',
   8: 'https://www.tutorshour.com',
   9: 'https://www.wiservisions.com',
-  10: 'https://www.meritcourses.com',
+  10: 'https://eazyteach.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -50,7 +50,7 @@ const siteNameMap = {
   7: 'Studyassistants',
   8: 'Tutorshour',
   9: 'Wiservisions', 
-  10: 'Meritcourses',
+  10: 'Eazyteach',
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
