@@ -39,6 +39,14 @@ const FRONTEND_URL_MAP = {
   8: 'https://www.tutorshour.com',
   9: 'https://www.wiservisions.com',
   10: 'https://eazyteach.com',
+  11: 'https://substantile.com',
+  12: 'https://skillvybe.com', 
+  13: 'https://coachavo.com', 
+  14: 'https://proficientme.com',
+  15: 'https://classtron.com',
+  16: 'https://workshopbay.com', 
+  17: 'https://crescenz.com',
+
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -51,6 +59,14 @@ const siteNameMap = {
   8: 'Tutorshour',
   9: 'Wiservisions', 
   10: 'Eazyteach',
+  11: 'Substantile',
+  12: 'Skillvybe', 
+  13: 'Coachavo', 
+  14: 'Proficientme',
+  15: 'Classtron',
+  16: 'Workshopbay', 
+  17: 'Crescenz',
+
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
@@ -391,8 +407,21 @@ router.get("/enrollment/success", async (req, res) => {
         coursePrice = null; // Handle case where price lookup fails
       }
       sessionType = coursePrice.sessionType;
-      const enrollment = await Enrollment.create({ userId, courseId,siteId,priceId,sessionType,actualPricePaid}, { returning: true });
-      enrollments.push(enrollment); // Add enrollment object to the array
+
+     // Check for existing enrollment
+    const existingEnrollment = await Enrollment.findOne({
+      where: { userId, courseId, sessionType }
+   });
+   
+   if (!existingEnrollment) {
+      const enrollment = await Enrollment.create(
+         { userId, courseId, siteId, priceId, sessionType, actualPricePaid },
+         { returning: true }
+      );
+      enrollments.push(enrollment);
+   } else {
+      console.log(`Enrollment for user ${userId} in course ${courseId} already exists.`);
+   }
       
       // Populate rowData dynamically
       const course = await Course.findByPk(enrollment.courseId);
