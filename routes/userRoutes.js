@@ -424,7 +424,7 @@ router.get("/enrollment/success", async (req, res) => {
    }
       
       // Populate rowData dynamically
-      const course = await Course.findByPk(enrollment.courseId);
+      const course = await Course.findByPk(courseId);
       console.log(coursePrice);
       rowData.push({
         webinarName: course.title,
