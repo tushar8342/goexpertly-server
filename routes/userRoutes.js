@@ -46,6 +46,7 @@ const FRONTEND_URL_MAP = {
   15: 'https://classtron.com',
   16: 'https://workshopbay.com', 
   17: 'https://crescenz.com',
+  18: 'https://coachedly.com',
 
 };
 const siteNameMap = {
@@ -66,6 +67,7 @@ const siteNameMap = {
   15: 'Classtron',
   16: 'Workshopbay', 
   17: 'Crescenz',
+  18: 'Coachedly',
 
 };
   const logoPathToCopySite=(siteId) =>{ 
