@@ -48,6 +48,16 @@ const FRONTEND_URL_MAP = {
   17: 'https://crescenz.com',
   18: 'https://coachedly.com',
 
+  19: 'https://securmo.com',
+  20: 'https://wisearcs.com',
+  21: 'https://wikilay.com',
+  22: 'https://kodiqe.com',
+  23: 'https://zenmatix.com',
+  24: 'https://britewizard.com',
+  25: 'https://higheringco.com',
+  26: 'https://mindvalves.com',
+  //27: 'https://strivebrite.com',
+  // 28: 'https//structives.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -68,7 +78,14 @@ const siteNameMap = {
   16: 'Workshopbay', 
   17: 'Crescenz',
   18: 'Coachedly',
-
+  19: 'Securmo',
+  20: 'Wisearcs',
+  21: 'Wikilay',
+  22: 'Kodiqe',
+  23: 'Zenmatix',
+  24: 'Britewizard',
+  25: 'Higheringco',
+  26: 'Mindvalves',
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
