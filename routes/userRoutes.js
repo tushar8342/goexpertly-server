@@ -47,7 +47,6 @@ const FRONTEND_URL_MAP = {
   16: 'https://workshopbay.com', 
   17: 'https://crescenz.com',
   18: 'https://coachedly.com',
-
   19: 'https://securmo.com',
   20: 'https://wisearcs.com',
   21: 'https://wikilay.com',
@@ -56,8 +55,6 @@ const FRONTEND_URL_MAP = {
   24: 'https://britewizard.com',
   25: 'https://higheringco.com',
   26: 'https://mindvalves.com',
-  //27: 'https://strivebrite.com',
-  // 28: 'https//structives.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -79,7 +76,7 @@ const siteNameMap = {
   17: 'Crescenz',
   18: 'Coachedly',
   19: 'Securmo',
-  20: 'Wisearcs',
+  20: 'Wiserarcs',
   21: 'Wikilay',
   22: 'Kodiqe',
   23: 'Zenmatix',
