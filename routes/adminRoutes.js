@@ -13,11 +13,13 @@ const Video = require('../models/Video')
 const Price = require('../models/Price');
 const Instructor = require('../models/Instructor');
 const db = require('../models/db');
+const NodeCache = require('node-cache');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 require('dotenv').config();
 const router = express.Router();
 const { Op } = require('sequelize');
 const AWS = require('aws-sdk');
+const courseCache = new NodeCache({ stdTTL: 300 }); // Cache expires in 5 mins
 router.post('/signup', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -241,29 +243,40 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Get all courses
+// Get all courses with caching
 router.get('/courses', async (req, res) => {
   try {
+    const cachedCourses = courseCache.get('allCourses');
+    if (cachedCourses) {
+      return res.status(200).json(cachedCourses);
+    }
+
     const courses = await Course.findAll({
-      include: [{
-        model: Site,
-        as:'Sites',
-        attributes: ['siteId', 'name'], // Include only necessary site attributes
-      },
-      {
-        model: Price,
-        as: 'Pricings',
-      }
-    ]
+      include: [
+        {
+          model: Site,
+          as: 'Sites',
+          attributes: ['siteId', 'name'],
+        },
+        {
+          model: Price,
+          as: 'Pricings',
+        }
+      ]
     });
+
     const coursesWithSiteId = courses.map((course) => {
       if (typeof course.siteId === 'string') {
-        course.siteId = course.siteId.split(','); // Split if comma-separated
+        course.siteId = course.siteId.split(',');
       } else {
-        course.siteId = [course.siteId]; // Wrap single value in array (optional)
+        course.siteId = [course.siteId];
       }
       return course;
     });
+
+    // Store in cache
+    courseCache.set('allCourses', coursesWithSiteId);
+
     res.status(200).json(coursesWithSiteId);
   } catch (error) {
     console.error(error);
