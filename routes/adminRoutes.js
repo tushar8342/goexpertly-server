@@ -363,28 +363,52 @@ router.get('/courses/upcoming', async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve upcoming webinars' });
   }
 });
-// Get a specific course by ID
+// Get a specific course by ID with caching
 router.get('/courses/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
-    const course = await Course.findByPk(courseId,{
-      include: [{
-        model: Site,
-        as:'Sites',
-        attributes: ['siteId', 'name'], // Include only necessary site attributes
-      },
-      {
-        model: Price,
-        as: 'Pricings',
-      }
-    ]
+    const cacheKey = `course_${courseId}`;
+
+    // Check if the course is in the cache
+    const cachedCourse = courseCache.get(cacheKey);
+    if (cachedCourse) {
+      console.log(`✅ Cache hit for course ID: ${courseId}`);
+      return res.status(200).json(cachedCourse);
+    }
+
+    console.log(`🚫 Cache miss for course ID: ${courseId}. Fetching from DB...`);
+
+    // Fetch course from DB if not cached
+    const course = await Course.findByPk(courseId, {
+      include: [
+        {
+          model: Site,
+          as: 'Sites',
+          attributes: ['siteId', 'name'], // Only include necessary site attributes
+        },
+        {
+          model: Price,
+          as: 'Pricings',
+        },
+      ],
     });
+
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
-    const siteIdArray = await course.siteId.split(",");
-    course.siteId=siteIdArray
-    res.status(200).json(course);
+
+    // Convert course data to plain object
+    const plainCourse = course.get({ plain: true });
+
+    // If siteId is a string, split it into an array
+    if (typeof plainCourse.siteId === 'string') {
+      plainCourse.siteId = plainCourse.siteId.split(',');
+    }
+
+    // Cache the course data for future requests
+    courseCache.set(cacheKey, plainCourse);
+
+    return res.status(200).json(plainCourse);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to fetch course' });
