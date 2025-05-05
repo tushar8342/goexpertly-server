@@ -247,7 +247,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
 router.get('/courses', async (req, res) => {
   try {
     // Check if cached
-    const cachedCourses = nodeCache.get('all_courses');
+    const cachedCourses = NodeCache.get('all_courses');
     if (cachedCourses) {
       return res.status(200).json(cachedCourses);
     }
