@@ -246,38 +246,42 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
 // Get all courses with caching
 router.get('/courses', async (req, res) => {
   try {
-    const cachedCourses = courseCache.get('allCourses');
+    // Check if cached
+    const cachedCourses = nodeCache.get('all_courses');
     if (cachedCourses) {
       return res.status(200).json(cachedCourses);
     }
 
+    // Fetch from DB if not cached
     const courses = await Course.findAll({
       include: [
         {
           model: Site,
           as: 'Sites',
-          attributes: ['siteId', 'name'],
+          attributes: ['siteId', 'name']
         },
         {
           model: Price,
-          as: 'Pricings',
+          as: 'Pricings'
         }
       ]
     });
 
-    const coursesWithSiteId = courses.map((course) => {
-      if (typeof course.siteId === 'string') {
-        course.siteId = course.siteId.split(',');
+    // Convert Sequelize objects to plain objects
+    const plainCourses = courses.map((course) => {
+      const coursePlain = course.get({ plain: true });
+      if (typeof coursePlain.siteId === 'string') {
+        coursePlain.siteId = coursePlain.siteId.split(',');
       } else {
-        course.siteId = [course.siteId];
+        coursePlain.siteId = [coursePlain.siteId];
       }
-      return course;
+      return coursePlain;
     });
 
-    // Store in cache
-    courseCache.set('allCourses', coursesWithSiteId);
+    // Set cache for 1 hour
+    NodeCache.set('all_courses', plainCourses, 3600);
 
-    res.status(200).json(coursesWithSiteId);
+    res.status(200).json(plainCourses);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to fetch courses' });
