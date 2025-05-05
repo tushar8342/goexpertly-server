@@ -247,7 +247,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
 router.get('/courses', async (req, res) => {
   try {
     // Check if cached
-    const cachedCourses = NodeCache.get('all_courses');
+    const cachedCourses = courseCache.get('all_courses');
     if (cachedCourses) {
       return res.status(200).json(cachedCourses);
     }
@@ -279,7 +279,7 @@ router.get('/courses', async (req, res) => {
     });
 
     // Set cache for 1 hour
-    NodeCache.set('all_courses', plainCourses, 3600);
+    courseCache.set('all_courses', plainCourses, 3600);
 
     res.status(200).json(plainCourses);
   } catch (error) {
