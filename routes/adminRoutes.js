@@ -20,6 +20,9 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const AWS = require('aws-sdk');
 const courseCache = new NodeCache({ stdTTL: 300 }); // Cache expires in 5 mins
+const Redis = require('ioredis');
+const redis = new Redis(); // Connects to Redis (assuming default 127.0.0.1:6379)
+
 router.post('/signup', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -243,13 +246,14 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Get all courses with caching
+// Get all courses with Redis caching
 router.get('/courses', async (req, res) => {
   try {
     // Check if cached
-    const cachedCourses = courseCache.get('all_courses');
+    const cachedCourses = await redis.get('all_courses');
     if (cachedCourses) {
-      return res.status(200).json(cachedCourses);
+      console.log('✅ Cache hit for all courses');
+      return res.status(200).json(JSON.parse(cachedCourses));
     }
 
     // Fetch from DB if not cached
@@ -279,7 +283,7 @@ router.get('/courses', async (req, res) => {
     });
 
     // Set cache for 1 hour
-    courseCache.set('all_courses', plainCourses, 3600);
+    await redis.setex('all_courses', 3600, JSON.stringify(plainCourses));
 
     res.status(200).json(plainCourses);
   } catch (error) {
@@ -363,17 +367,17 @@ router.get('/courses/upcoming', async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve upcoming webinars' });
   }
 });
-// Get a specific course by ID with caching
+// Get a specific course by ID with Redis caching
 router.get('/courses/:courseId', async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const cacheKey = `course_${courseId}`;
 
-    // Check if the course is in the cache
-    const cachedCourse = courseCache.get(cacheKey);
+    // Check if the course is in the Redis cache
+    const cachedCourse = await redis.get(cacheKey);
     if (cachedCourse) {
       console.log(`✅ Cache hit for course ID: ${courseId}`);
-      return res.status(200).json(cachedCourse);
+      return res.status(200).json(JSON.parse(cachedCourse));
     }
 
     console.log(`🚫 Cache miss for course ID: ${courseId}. Fetching from DB...`);
@@ -405,8 +409,8 @@ router.get('/courses/:courseId', async (req, res) => {
       plainCourse.siteId = plainCourse.siteId.split(',');
     }
 
-    // Cache the course data for future requests
-    courseCache.set(cacheKey, plainCourse);
+    // Cache the course data for future requests in Redis (expiry 1 hour)
+    await redis.setex(cacheKey, 3600, JSON.stringify(plainCourse));
 
     return res.status(200).json(plainCourse);
   } catch (error) {
