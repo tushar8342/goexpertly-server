@@ -55,6 +55,14 @@ const FRONTEND_URL_MAP = {
   24: 'https://britewizard.com',
   25: 'https://higheringco.com',
   26: 'https://mindvalves.com',
+  27: 'https://outgroww.com',
+  28: 'https://recertifie.com',
+  29: 'https://augmentings.com',
+  30: 'https://eleveable.com',
+  31: 'https://improvly.com',
+  32: 'https://activaim.com',
+  33: 'https://fablessons.com',
+  34: 'https://preciseducation.com',
 };
 const siteNameMap = {
   1: 'GoExpertly', // Hide for siteId 1
@@ -83,6 +91,14 @@ const siteNameMap = {
   24: 'Britewizard',
   25: 'Higheringco',
   26: 'Mindvalves',
+  27: 'Outgroww',
+  28: 'Recertifie',
+  29: 'Augmentings',
+  30: 'Eleveable',
+  31: 'Improvly',
+  32: 'Activaim',
+  33: 'Fablessons',
+  34: 'Preciseducation'
 };
   const logoPathToCopySite=(siteId) =>{ 
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
