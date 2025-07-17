@@ -19,6 +19,13 @@ const { log } = require("console");
 const logoPath = path.join(__dirname, 'logo.png');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 sendGridMail.setApiKey(process.env.SENDGRID_API_KEY);
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -294,32 +301,35 @@ router.post("/forgot-password", async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    // Create JWT
     const token = jwt.sign({ userId: user.id },process.env.JWT_SECRET, { expiresIn: '1h' }); // Adjust expiration time as needed
     const FRONTEND_URL = siteId ? FRONTEND_URL_MAP[siteId] : FRONTEND_URL_MAP[1];
-    // Send reset password email with JWT
     const site = siteNameMap[siteId];
-    //use fromEmail in mailOptions after verifying sender emails
     const fromEmail = `support@${site.toLowerCase()}.com`;
-    console.log(site,fromEmail)
     const resetLink = `${FRONTEND_URL}/forgot-password/${token}`;
-    const mailOptions = {
-      from: 'support@goexpertly.com',
-      to: email,
-      subject: 'Password Reset Link',
-      html: `
-        <p>You requested a password reset. Please click the following link to reset your password:</p>
-        <p><a href="${resetLink}">${resetLink}</a></p>
-      `
+    const sender = {
+      email: fromEmail,
+      name: 'Support Team',
     };
-    await sendGridMail.send(mailOptions);
+
+    const brevoMail = {
+      sender,
+      to: [{ email }],
+      subject: 'Password Reset Link',
+      htmlContent: `
+        <p>You requested a password reset. Please click the link below:</p>
+        <p><a href="${resetLink}">${resetLink}</a></p>
+      `,
+    };
+
+    await brevoEmailApi.sendTransacEmail(brevoMail);
+
     res.json({ message: 'Password reset email sent' });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal server error'   
- });
+    console.error("Error in /forgot-password:", err);
+    res.status(500).json({ message: 'Internal server error' });
   }
-})
+});
 router.post("/enroll",authenticateUser, async (req, res) => {
   const {cartItems, couponCode,siteId } = req.body;
   const {userId} = req.user
