@@ -9,7 +9,7 @@ const Coupon  = require('../models/Coupon')
 const Contact  = require('../models/Contact')
 const Video = require('../models/Video')
 const Pricing = require('../models/Price')
-const sendGridMail = require("@sendgrid/mail");
+// const sendGridMail = require("@sendgrid/mail");
 const AWS = require('aws-sdk');
 const PDFDocument = require('pdfkit');
 const stream = require('stream');
@@ -18,7 +18,7 @@ const { log } = require("console");
 // Define the path to the logo image
 const logoPath = path.join(__dirname, 'logo.png');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-sendGridMail.setApiKey(process.env.SENDGRID_API_KEY);
+// sendGridMail.setApiKey(process.env.SENDGRID_API_KEY);
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 
 let defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -718,41 +718,38 @@ doc.end();
         buffer = Buffer.concat([buffer, chunk]);
       });
      fileStream.on('end', async () => {
-      const msg = {
-        to: checkoutSession.customer_email,
-        from: "support@goexpertly.com",
+      await emailApi.sendTransacEmail({
+        to: [{ email: checkoutSession.customer_email }],
+        sender: { name: "GoExpertly Support", email: "support@goexpertly.com" }, // must be verified in Brevo
         subject: "Course Enrollment Successful",
-        text: `Hello,
+        htmlContent: `<strong>Hello,</strong><br><br>You have successfully enrolled in the following courses:<br><br>
 
-        You have successfully enrolled in the following courses:
+      ${rowData.map((row) => `* <strong>${row.webinarName}</strong><br>  Course Description: ${row.description}<br>`).join('<br>')}
 
-        ${rowData.map((row) => `* ${row.webinarName}\n  Course Description: ${row.description}\n`).join('\n')}
+  Thank you for your purchase!<br><br>
+  <strong>Kindly note</strong> – For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.<br><br>
+  Best regards,<br>
+  Your Course Team`,
+  textContent: `Hello,
 
-        Thank you for your purchase!
+You have successfully enrolled in the following courses:
 
-        **Kindly note - For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.**
-        
-        Best regards,
-        Your Course Team`,
-        html: `<strong>Hello,</strong><br><br>You have successfully enrolled in the following courses:<br><br>
+${rowData.map((row) => `* ${row.webinarName}\n  Course Description: ${row.description}\n`).join('\n')}
 
-        ${rowData.map((row) => `* <strong>${row.webinarName}</strong><br>  Course Description: ${row.description}<br>`).join('<br>')}
+Thank you for your purchase!
 
-        Thank you for your purchase!<br><br>
-        **Kindly note - For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.**<br><br>
-        Best regards,<br>
-        Your Course Team`,
-        attachments: [
-          {
-            content:buffer.toString('base64'),
-            filename: `invoice_${orderNumber}.pdf`,
-            type: 'application/pdf',
-            disposition: 'attachment',
-          },
-        ],
-      };
-      
-      await sendGridMail.send(msg);
+Kindly note – For live session the invitation to join will be sent 24 hours prior to the training and for recorded session the training would be available within 24hrs of the completion of the training.
+
+Best regards,
+Your Course Team`,
+  attachment: [
+    {
+      content: buffer.toString('base64'),
+      name: `invoice_${orderNumber}.pdf`
+    }
+  ]
+});
+
       for (const enrollment of enrollments) {
         await enrollment.update({ invoiceUrl: s3Response.Location , orderId: orderNumber});
       }
@@ -842,12 +839,10 @@ router.post('/coupons/apply', async (req, res) => {
 });
 router.post('/contactus', async (req, res) => {
   try {
-    // Validate required fields
     const { firstName, lastName, email, message } = req.body;
     if (!firstName || !lastName || !email || !message) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    // Create the contact data for database storage
     const newContactData = {
       name: `${firstName} ${lastName}`,
       email,
@@ -858,36 +853,42 @@ router.post('/contactus', async (req, res) => {
       city: req.body.city || null,
       country: req.body.country || null,
     };
-    const newContact = await Contact.create(newContactData);
-    // Create the email content
-    const msg = {
-      to: 'syed.p@goexpertly.com', 
-      from: "support@goexpertly.com", // Use the sender's email for a personalized touch
-      subject: `Contact Us Inquiry from ${firstName} ${lastName}`,
-      text: `
-        **Name:** ${firstName} ${lastName}
-        **Email:** ${email}
-        **Current Role:** ${req.body.currentRole || 'N/A'} 
-        **Company Name:** ${req.body.companyName || 'N/A'} 
-        **Company Address:** ${req.body.companyAddress || 'N/A'}
-        **City:** ${req.body.city || 'N/A'}  
-        **Country:** ${req.body.country || 'N/A'}  
-        **Message:** ${message}
-      `,
-    };
+    await Contact.create(newContactData);
 
-    // Send the email with error handling
-    await sendGridMail.send(msg)
-      .then(() => {
-        res.status(200).json({ message: 'Your message has been sent successfully!' });
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(500).json({ message: 'Internal server error. Please try again later.' });
-      });
+    const textContent = `
+Name: ${firstName} ${lastName}
+Email: ${email}
+Current Role: ${req.body.currentRole || 'N/A'} 
+Company Name: ${req.body.companyName || 'N/A'} 
+Company Address: ${req.body.companyAddress || 'N/A'}
+City: ${req.body.city || 'N/A'}  
+Country: ${req.body.country || 'N/A'}  
+Message: ${message}
+    `;
+
+    const htmlContent = `
+<strong>Name:</strong> ${firstName} ${lastName}<br>
+<strong>Email:</strong> ${email}<br>
+<strong>Current Role:</strong> ${req.body.currentRole || 'N/A'}<br>
+<strong>Company Name:</strong> ${req.body.companyName || 'N/A'}<br>
+<strong>Company Address:</strong> ${req.body.companyAddress || 'N/A'}<br>
+<strong>City:</strong> ${req.body.city || 'N/A'}<br>
+<strong>Country:</strong> ${req.body.country || 'N/A'}<br>
+<strong>Message:</strong> ${message}
+    `;
+
+    await emailApi.sendTransacEmail({
+      to: [{ email: 'syed.p@goexpertly.com' }],
+      sender: { name: "GoExpertly Support", email: "support@goexpertly.com" },
+      subject: `Contact Us Inquiry from ${firstName} ${lastName}`,
+      textContent,
+      htmlContent
+    });
+
+    res.status(200).json({ message: 'Your message has been sent successfully!' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Email sending error:', error?.response?.body || error);
+    res.status(500).json({ message: 'Internal server error. Please try again later.' });
   }
 });
 module.exports = router;
