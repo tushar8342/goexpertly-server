@@ -718,7 +718,7 @@ doc.end();
         buffer = Buffer.concat([buffer, chunk]);
       });
      fileStream.on('end', async () => {
-      await emailApi.sendTransacEmail({
+      await brevoEmailApi.sendTransacEmail({
         to: [{ email: checkoutSession.customer_email }],
         sender: { name: "GoExpertly Support", email: "support@goexpertly.com" }, // must be verified in Brevo
         subject: "Course Enrollment Successful",
@@ -877,7 +877,7 @@ Message: ${message}
 <strong>Message:</strong> ${message}
     `;
 
-    await emailApi.sendTransacEmail({
+    await brevoEmailApi.sendTransacEmail({
       to: [{ email: 'syed.p@goexpertly.com' }],
       sender: { name: "GoExpertly Support", email: "support@goexpertly.com" },
       subject: `Contact Us Inquiry from ${firstName} ${lastName}`,
