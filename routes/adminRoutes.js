@@ -76,6 +76,30 @@ const authenticateAdmin = (req, res, next) => {
       res.status(401).json({ message: 'Invalid token' });
     }
   };
+  // Bulk archive courses
+router.put('/courses/archive', authenticateAdmin, async (req, res) => {
+  const { courseIds, archieve } = req.body;
+
+  if (!Array.isArray(courseIds) || courseIds.length === 0) {
+    return res.status(400).json({ message: 'courseIds must be a non-empty array' });
+  }
+
+  try {
+    await Course.update(
+      { archieve: archieve ?? 1 }, // default to true
+      {
+        where: {
+          courseID: courseIds,
+        },
+      }
+    );
+
+    res.status(200).json({ message: 'Courses archived successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to archive courses' });
+  }
+});
   router.get('/inquires', authenticateAdmin, async (req, res) => {
     try {
       // Fetch all users from the database
@@ -786,30 +810,6 @@ router.get('/instructors/:id', async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Failed to fetch courses' });
 }
-});
-// Bulk archive courses
-router.put('/courses/archive', authenticateAdmin, async (req, res) => {
-  const { courseIds, archieve } = req.body;
-
-  if (!Array.isArray(courseIds) || courseIds.length === 0) {
-    return res.status(400).json({ message: 'courseIds must be a non-empty array' });
-  }
-
-  try {
-    await Course.update(
-      { archieve: archieve ?? 1 }, // default to true
-      {
-        where: {
-          courseID: courseIds,
-        },
-      }
-    );
-
-    res.status(200).json({ message: 'Courses archived successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to archive courses' });
-  }
 });
 
 module.exports = router;
