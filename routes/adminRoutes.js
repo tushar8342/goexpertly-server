@@ -797,7 +797,7 @@ router.put('/courses/archive', authenticateAdmin, async (req, res) => {
 
   try {
     await Course.update(
-      { archieve: archieve ?? true }, // default to true
+      { archieve: archieve ?? 1 }, // default to true
       {
         where: {
           courseID: courseIds,
