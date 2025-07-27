@@ -100,7 +100,7 @@ router.put('/courses/archive', authenticateAdmin, async (req, res) => {
     res.status(500).json({ message: 'Failed to archive courses' });
   }
 });
-router.get('/courses/lifescience', authenticateAdmin, async (req, res) => {
+router.get('/courses/lifescience', async (req, res) => {
   try {
     const courses = await Course.findAll({
       where: {
