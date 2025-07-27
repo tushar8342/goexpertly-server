@@ -98,7 +98,12 @@ const Course = db.define('Course', {
       model: 'Instructors',
       key: 'instructorID'
     }
-  }
+  },
+  category: {
+  type: DataTypes.ENUM('hr', 'life_science'),
+  allowNull: false,
+  defaultValue: 'hr'
+},
 });
 
 module.exports = Course;

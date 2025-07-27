@@ -100,6 +100,21 @@ router.put('/courses/archive', authenticateAdmin, async (req, res) => {
     res.status(500).json({ message: 'Failed to archive courses' });
   }
 });
+router.get('/courses/lifescience', authenticateAdmin, async (req, res) => {
+  try {
+    const courses = await Course.findAll({
+      where: {
+        category: 'life_science',
+        archieve: false, // optional: only active courses
+      },
+    });
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch lifescience courses' });
+  }
+});
   router.get('/inquires', authenticateAdmin, async (req, res) => {
     try {
       // Fetch all users from the database
@@ -221,7 +236,7 @@ router.delete('/users/:userId', async (req, res) => {
 // Create a new course
 router.post('/courses', authenticateAdmin, async (req, res) => {
   try {
-      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,pricingData,instructorId } = req.body;
+      const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,pricingData,instructorId,category } = req.body;
 
     // Basic validation (consider using a validation library for more complex checks)
     if (!title || !description || !price) {
@@ -251,7 +266,8 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
       instructor_profile, 
       archieve,
       pricingData,
-      instructorId
+      instructorId,
+      category
     }, { transaction });
     for (const pricingEntry of pricingData) {
       await Price.create({
@@ -447,7 +463,7 @@ router.get('/courses/:courseId', async (req, res) => {
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
   const transaction = await db.transaction();
   const courseId = req.params.courseId;
-  const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve } = req.body;
+  const { title, imageSrc, instructor, duration, price, discountedPrice, rating, numReviews, detailsLink, background, description, who_will_benefit, areas_covered, siteId, webinarDate, why_register, level, target_companies, target_association, instructor_profile, archieve,category } = req.body;
 
   // Basic validation (consider using a validation library for more complex checks)
   if (!courseId) {
@@ -487,6 +503,7 @@ router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
         target_association, 
         instructor_profile, 
         archieve,
+        category
       }, { transaction });
     }
 
