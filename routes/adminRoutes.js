@@ -286,18 +286,19 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Get all courses with Redis caching
+// Get only HR courses with Redis caching
 router.get('/courses', async (req, res) => {
   try {
     // Check if cached
-    const cachedCourses = await redis.get('all_courses');
+    const cachedCourses = await redis.get('hr_courses');
     if (cachedCourses) {
-      console.log('✅ Cache hit for all courses');
+      console.log('✅ Cache hit for HR courses');
       return res.status(200).json(JSON.parse(cachedCourses));
     }
 
-    // Fetch from DB if not cached
+    // Fetch only HR courses from DB if not cached
     const courses = await Course.findAll({
+      where: { category: 'hr' }, //Filter only HR
       include: [
         {
           model: Site,
@@ -323,12 +324,12 @@ router.get('/courses', async (req, res) => {
     });
 
     // Set cache for 1 hour
-    await redis.setex('all_courses', 3600, JSON.stringify(plainCourses));
+    await redis.setex('hr_courses', 3600, JSON.stringify(plainCourses));
 
     res.status(200).json(plainCourses);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Failed to fetch courses' });
+    res.status(500).json({ message: 'Failed to fetch HR courses' });
   }
 });
 // Search courses
