@@ -111,7 +111,7 @@ const siteNameMap = {
     return path.join(__dirname, `logo-${siteNameMap[siteId]}.png`);}
 
 router.post("/signup", async (req, res) => {
-  const { email, password, fullName,phone,siteId } = req.body;
+  const { email, password, fullName,phone,siteId,preSignupCourseId  } = req.body;
 
   try {
     const existingUser = await User.findOne({
@@ -120,7 +120,16 @@ router.post("/signup", async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
-
+    // if preSignupCourseId provided, validate it exists
+    let validCourseId = null;
+    if (preSignupCourseId) {
+      const course = await Course.findByPk(preSignupCourseId, { transaction: t });
+      if (!course) {
+        await t.rollback();
+        return res.status(400).json({ message: 'Invalid preSignupCourseId' });
+      }
+      validCourseId = course.courseID; // ensure we store canonical PK
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
@@ -128,8 +137,9 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       fullName,
       phone,
-      siteId:siteId?siteId:1
-    });
+      siteId:siteId?siteId:1,
+      preSignupCourseId : validCourseId
+    }); 
     if (!newUser) { // Handle potential errors during user creation
       return res.status(500).json({ message: "Failed to create user" });
     }
