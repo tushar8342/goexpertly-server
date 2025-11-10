@@ -289,7 +289,7 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
     res.status(500).json({ message: 'Internal server error occurred' });
   }
 });
-app.get('/r', (req, res) => {
+router.get('/r', (req, res) => {
   const dest = req.query.to || '/';
   res.redirect(302, dest);          // fast redirect
 });
