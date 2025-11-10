@@ -158,19 +158,23 @@ router.delete('/inquires/:id', authenticateAdmin, async (req, res) => {
 
 // Get all users (Admin endpoint)
 router.get('/users', authenticateAdmin, async (req, res) => {
-    try {
-      // Fetch all users from the database
-      const users = await User.findAll({
-        order: [['createdAt', 'DESC']],
-      });
-  
-      // Send the list of users in the response
-      res.status(200).json(users);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Failed to fetch users' });
-    }
-  });
+  try {
+    const users = await User.findAll({
+      order: [['createdAt', 'DESC']],
+      attributes: ['id', 'email', 'fullName', 'phone', 'siteId', 'preSignupCourseId', 'createdAt'],
+      include: [{
+        model: Course,
+        as: 'preSignupCourse', // must match your association alias
+        attributes: ['courseID', 'title', 'instructor', 'webinarDate', 'price']
+      }]
+    });
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
   router.get('/users/:id', authenticateAdmin, async (req, res) => {
     try {
         const userId = req.params.id;
