@@ -289,6 +289,10 @@ router.post('/courses', authenticateAdmin, async (req, res) => {
     res.status(500).json({ message: 'Internal server error occurred' });
   }
 });
+app.get('/r', (req, res) => {
+  const dest = req.query.to || '/';
+  res.redirect(302, dest);          // fast redirect
+});
 
 // Get only HR courses with Redis caching
 router.get('/courses', async (req, res) => {
