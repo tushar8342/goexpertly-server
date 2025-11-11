@@ -161,12 +161,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
   try {
     const users = await User.findAll({
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'email', 'fullName', 'phone', 'siteId', 'preSignupCourseId', 'createdAt'],
-      include: [{
-        model: Course,
-        as: 'preSignupCourse', // must match your association alias
-        attributes: ['courseID', 'title', 'instructor', 'webinarDate', 'price']
-      }]
+      attributes: ['id', 'email', 'fullName', 'phone', 'siteId', 'preSignupCourseId', 'createdAt']
     });
 
     res.status(200).json(users);
