@@ -31,7 +31,7 @@ app.use(cors({
 }));
 
 const port = process.env.PORT || 8080;
-
+app.use(express.static('public'));
 // Swagger definition
 const swaggerDefinition = {
   openapi: '3.0.0',

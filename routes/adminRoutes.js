@@ -295,7 +295,6 @@ router.get('/courses', async (req, res) => {
     // Check if cached
     const cachedCourses = await redis.get('hr_courses');
     if (cachedCourses) {
-      console.log('✅ Cache hit for HR courses');
       return res.status(200).json(JSON.parse(cachedCourses));
     }
 
@@ -420,7 +419,6 @@ router.get('/courses/:courseId', async (req, res) => {
     // Check if the course is in the Redis cache
     const cachedCourse = await redis.get(cacheKey);
     if (cachedCourse) {
-      console.log(`✅ Cache hit for course ID: ${courseId}`);
       return res.status(200).json(JSON.parse(cachedCourse));
     }
 
