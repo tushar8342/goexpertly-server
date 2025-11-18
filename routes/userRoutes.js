@@ -123,9 +123,8 @@ router.post("/signup", async (req, res) => {
     // if preSignupCourseId provided, validate it exists
     let validCourseId = null;
     if (preSignupCourseId) {
-      const course = await Course.findByPk(preSignupCourseId, { transaction: t });
+      const course = await Course.findByPk(preSignupCourseId);
       if (!course) {
-        await t.rollback();
         return res.status(400).json({ message: 'Invalid preSignupCourseId' });
       }
       validCourseId = course.courseID; // ensure we store canonical PK
