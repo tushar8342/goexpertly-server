@@ -486,7 +486,7 @@ router.get('/active', async (req, res) => {
   }
 });
 // Get only ARCHIVED courses
-router.get('/archived', authenticateAdmin, async (req, res) => {
+router.get('/archived', async (req, res) => {
   try {
     const courses = await Course.findAll({
       where: { archieve: true },
