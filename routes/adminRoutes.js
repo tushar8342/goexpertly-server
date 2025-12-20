@@ -461,7 +461,7 @@ router.get('/courses/:courseId', async (req, res) => {
   }
 });
 // Get only ACTIVE courses
-router.get('/courses/active', async (req, res) => {
+router.get('/active', async (req, res) => {
   try {
     const courses = await Course.findAll({
       where: { archieve: false },
@@ -486,7 +486,7 @@ router.get('/courses/active', async (req, res) => {
   }
 });
 // Get only ARCHIVED courses
-router.get('/courses/archived', authenticateAdmin, async (req, res) => {
+router.get('/archived', authenticateAdmin, async (req, res) => {
   try {
     const courses = await Course.findAll({
       where: { archieve: true },
