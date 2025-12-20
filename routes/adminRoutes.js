@@ -460,6 +460,56 @@ router.get('/courses/:courseId', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch course' });
   }
 });
+// Get only ACTIVE courses
+router.get('/courses/active', async (req, res) => {
+  try {
+    const courses = await Course.findAll({
+      where: { archieve: false },
+      include: [
+        {
+          model: Site,
+          as: 'Sites',
+          attributes: ['siteId', 'name']
+        },
+        {
+          model: Price,
+          as: 'Pricings'
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch active courses' });
+  }
+});
+// Get only ARCHIVED courses
+router.get('/courses/archived', authenticateAdmin, async (req, res) => {
+  try {
+    const courses = await Course.findAll({
+      where: { archieve: true },
+      include: [
+        {
+          model: Site,
+          as: 'Sites',
+          attributes: ['siteId', 'name']
+        },
+        {
+          model: Price,
+          as: 'Pricings'
+        }
+      ],
+      order: [['updatedAt', 'DESC']]
+    });
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch archived courses' });
+  }
+});
 
 // Update course information
 router.put('/courses/:courseId', authenticateAdmin, async (req, res) => {
