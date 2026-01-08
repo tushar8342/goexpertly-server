@@ -18,7 +18,18 @@ router.get('/courses', async (req, res) => {
 router.get('/courses/:course_id', async (req, res) => {
   const courseId = req.params.course_id;
   try {
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId, {
+      include: [
+        {
+          model: Pricing,
+          as: 'Pricings',
+          order: [['attendeeCount', 'ASC']], // 👈 THIS IS IMPORTANT
+        }
+      ],
+      order: [
+        [{ model: Pricing, as: 'Pricings' }, 'attendeeCount', 'ASC']
+      ]
+    });
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
