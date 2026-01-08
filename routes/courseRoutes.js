@@ -23,11 +23,9 @@ router.get('/courses/:course_id', async (req, res) => {
         {
           model: Pricing,
           as: 'Pricings',
-          order: [['attendeeCount', 'ASC']], // 👈 THIS IS IMPORTANT
+          separate: true, 
+          order: [['attendeeCount', 'ASC']], 
         }
-      ],
-      order: [
-        [{ model: Pricing, as: 'Pricings' }, 'attendeeCount', 'ASC']
       ]
     });
     if (!course) {
