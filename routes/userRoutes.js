@@ -313,11 +313,11 @@ router.post("/forgot-password", async (req, res) => {
     const token = jwt.sign({ userId: user.id },process.env.JWT_SECRET, { expiresIn: '1h' }); // Adjust expiration time as needed
     const FRONTEND_URL = siteId ? FRONTEND_URL_MAP[siteId] : FRONTEND_URL_MAP[1];
     const site = siteNameMap[siteId];
-    const fromEmail = `support@${site.toLowerCase()}.com`;
+    const fromEmail = `support@goexpertly.com`;
     const resetLink = `${FRONTEND_URL}/forgot-password/${token}`;
     const sender = {
       email: fromEmail,
-      name: 'Support Team',
+      name: `${site} Support Team`,
     };
 
     const brevoMail = {
